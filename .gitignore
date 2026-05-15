@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production Builds
+client/dist/
+server/dist/
+
+# MVK Live Database & Logs (DO NOT SYNC TO CLOUD)
+server/uploads/
+mvk-db.json
+mvk-logs.txt
+
+# Environment & System
+.env
+.DS_Store
+# Ignore Backups
+*.rar
+*.zip
