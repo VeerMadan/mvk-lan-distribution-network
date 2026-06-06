@@ -6,10 +6,25 @@ const activeUsers: Record<string, { id: string; username: string; ip: string }[]
 const roomChats: Record<string, any[]> = {};
 const dbPath = path.join(__dirname, '../../mvk-db.json');
 const logPath = path.join(__dirname, '../../mvk-logs.txt');
+const HISTORY_DB_PATH = path.join(__dirname, '../../mvk-history.json');
 
 const getHistory = () => {
-  if (!fs.existsSync(dbPath)) return [];
-  return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+  try {
+    if (!fs.existsSync(HISTORY_DB_PATH)) return []; // If file doesn't exist, return empty
+    
+    const data = fs.readFileSync(HISTORY_DB_PATH, 'utf-8');
+    
+    // If the file is completely empty or just whitespace, don't try to parse it
+    if (!data || data.trim() === '') {
+      return []; 
+    }
+    
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("⚠️ [WARNING] History database corrupted. Resetting to empty state to prevent crash.");
+    // Optional: fs.writeFileSync(HISTORY_DB_PATH, JSON.stringify([])); // Auto-heal the file
+    return [];
+  }
 };
 
 const saveToHistory = (record: any) => {
