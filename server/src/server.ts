@@ -13,15 +13,81 @@ const httpServer = http.createServer(app);
 // ABSOLUTE PATHING
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const DB_PATH = path.resolve(__dirname, '../../mvk-db.json');
+const USERS_DB_PATH = path.resolve(__dirname, '../../mvk-users.json');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(DB_PATH)) fs.writeFileSync(DB_PATH, JSON.stringify([]));
+if (!fs.existsSync(USERS_DB_PATH)) fs.writeFileSync(USERS_DB_PATH, JSON.stringify({}));
 
 app.use(cors());
 app.use(express.json());
 app.use('/api/upload', uploadRoutes);
-
 app.use('/preview', express.static(UPLOADS_DIR));
+
+// --- ZERO-TRUST AUTHENTICATION SYSTEM ---
+app.post('/api/auth/check', (req: any, res: any) => {
+  let { username, deviceId } = req.body;
+  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
+  let attemptName = username.toLowerCase();
+  let resolvedUsername = username;
+
+  // If they didn't type a #tag, search the database to see if they already exist
+  if (!attemptName.includes('#')) {
+    const matches = Object.keys(users).filter(k => k.split('#')[0] === attemptName);
+    if (matches.length === 1) {
+      // Exactly one match! Upgrade them to their existing tagged name
+      attemptName = matches[0];
+      resolvedUsername = users[matches[0]].displayName || matches[0];
+    } else if (matches.length > 1) {
+      // Collision! Two Rahuls exist. Force them to type their specific tag.
+      return res.json({ status: 'needs_tag' });
+    } else {
+      // Brand new user. Generate the tag.
+      const uniqueTag = Math.floor(1000 + Math.random() * 9000);
+      resolvedUsername = `${username}#${uniqueTag}`;
+      attemptName = resolvedUsername.toLowerCase();
+    }
+  }
+
+  const user = users[attemptName];
+
+  if (!user) {
+    // Save the new user to the vault
+    users[attemptName] = { devices: [deviceId], pin: null, displayName: resolvedUsername };
+    fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+    return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: resolvedUsername });
+  }
+
+  if (user.devices.includes(deviceId)) {
+    if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: resolvedUsername });
+    return res.json({ status: 'allowed', resolvedName: resolvedUsername });
+  }
+
+  return res.json({ status: 'challenge', resolvedName: resolvedUsername });
+});
+
+app.post('/api/auth/pin', (req: any, res: any) => {
+  const { username, deviceId, pin, action } = req.body;
+  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
+  const user = users[username.toLowerCase()];
+
+  if (!user) return res.status(400).json({ error: "User not found" });
+
+  if (action === 'setup') {
+    user.pin = pin;
+    fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+    return res.json({ status: 'success' });
+  }
+
+  if (action === 'verify') {
+    if (user.pin === pin) {
+      user.devices.push(deviceId); // Authorize this new device permanently
+      fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+      return res.json({ status: 'success' });
+    }
+    return res.status(401).json({ error: "Invalid PIN" });
+  }
+});
 
 const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST', 'DELETE'] },
@@ -116,6 +182,17 @@ const getStorageUsedGB = () => {
 };
 
 app.get('/api/storage', (req, res) => res.json({ storageUsed: getStorageUsedGB() }));
+
+// --- OTA UPDATE RADAR ---
+app.get('/api/check-updates', (req, res) => {
+  const { exec } = require('child_process');
+  const repoDir = path.resolve(__dirname, '../../'); 
+  exec('git fetch origin main && git rev-list HEAD...origin/main --count', { cwd: repoDir }, (err: any, stdout: any) => {
+    if (err) return res.json({ updateAvailable: false });
+    const commitsBehind = parseInt(stdout.trim(), 10);
+    res.json({ updateAvailable: commitsBehind > 0, commits: commitsBehind });
+  });
+});
 
 // UPGRADED: SECURE BATCH DELETE TUNNEL
 app.post('/api/files/delete', (req: any, res: any) => {

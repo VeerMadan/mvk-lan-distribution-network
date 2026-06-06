@@ -4,7 +4,7 @@ import { Share2, Users, Activity, ShieldCheck, Download, FileText, Lock, Menu, X
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const SERVER_URL = window.location.hostname === 'localhost' ? "http://localhost:3000" : "http://192.168.88.50:3000";
+const SERVER_URL = `http://${window.location.hostname}:3000`;
 const socket = io(SERVER_URL, { autoConnect: false, transports: ['websocket', 'polling'] });
 
 const ROOM_PINS: Record<string, string> = {
@@ -135,6 +135,12 @@ const App = () => {
   const [username, setUsername] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  
+  // Security Fingerprinting States
+  const [deviceId, setDeviceId] = useState('');
+  const [authStep, setAuthStep] = useState<'name' | 'setup_pin' | 'challenge'>('name');
+  const [authPin, setAuthPin] = useState('');
+  const [pinErrorText, setPinErrorText] = useState('');
   const [activeRoom, setActiveRoom] = useState('General');
   const [isOnline, setIsOnline] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -170,6 +176,7 @@ const App = () => {
   const [toastMsg, setToastMsg] = useState('');
   
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderTarget, setNewFolderTarget] = useState('Everyone');
 
@@ -191,6 +198,10 @@ const App = () => {
   
   const [storageUsed, setStorageUsed] = useState(85.5); 
   const STORAGE_LIMIT = 100; 
+  
+  // OTA Radar States
+  const [hasUpdate, setHasUpdate] = useState(false);
+  const [commitsBehind, setCommitsBehind] = useState(0); 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -231,16 +242,58 @@ const App = () => {
     return () => { window.removeEventListener('keydown', handleKeyDown); document.removeEventListener('click', handleGlobalClick); };
   }, [godMode]);
 
-  const handleNameLogin = (e: React.FormEvent) => {
+  // GENERATE DEVICE FINGERPRINT ON LOAD
+  useEffect(() => {
+    let id = localStorage.getItem('mvk_device_id');
+    if (!id) { id = Math.random().toString(36).substring(2, 15); localStorage.setItem('mvk_device_id', id); }
+    setDeviceId(id);
+  }, []);
+
+  const handleNameLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const attemptName = username.trim().toLowerCase();
+    const finalName = username.trim();
+    const attemptName = finalName.toLowerCase();
+    
     if (['system admin', 'veer_dev', 'admin'].includes(attemptName)) {
-      setPendingAdminName(username.trim());
-      setAdminAuthModal(true);
-      return;
+      setPendingAdminName(finalName); setAdminAuthModal(true); return;
     }
-    if (!username.trim()) return; 
-    setIsConnecting(true); playSuccess(); socket.auth = { username }; socket.connect();
+    if (!finalName) return; 
+
+    setIsConnecting(true); setPinErrorText('');
+    try {
+      const res = await axios.post(`${SERVER_URL}/api/auth/check`, { username: finalName, deviceId });
+      
+      if (res.data.status === 'needs_tag') {
+         setIsConnecting(false); 
+         setCustomAlert({title: 'Tag Required', msg: 'Multiple users share this name. Please enter your full tag (e.g. Name#1234).'});
+         return;
+      }
+
+      // Backend resolved the tag for us!
+      const resolvedName = res.data.resolvedName;
+      setUsername(resolvedName); // Update the input box to show the exact tag
+
+      if (res.data.status === 'challenge') {
+        setIsConnecting(false); setAuthStep('challenge'); playError();
+      } else if (res.data.requiresPinSetup) {
+        setIsConnecting(false); setAuthStep('setup_pin'); playSuccess();
+      } else {
+        playSuccess(); socket.auth = { username: resolvedName }; socket.connect();
+      }
+    } catch (err) { setIsConnecting(false); }
+  };
+
+  const submitAuthPin = async (action: 'setup' | 'verify') => {
+    if (authPin.length !== 4) return;
+    setIsConnecting(true); setPinErrorText('');
+    try {
+      const res = await axios.post(`${SERVER_URL}/api/auth/pin`, { username, deviceId, pin: authPin, action });
+      if (res.data.status === 'success') {
+        playSuccess(); socket.auth = { username }; socket.connect();
+      }
+    } catch (err) {
+      setIsConnecting(false); setAuthPin(''); setPinErrorText('Incorrect PIN. Intrusion logged.'); playError();
+    }
   };
 
   const attemptRoomJoin = (targetRoom: string) => {
@@ -473,6 +526,17 @@ const App = () => {
 
   useEffect(() => {
     axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(err => console.error(err));
+    
+    // PING GITHUB FOR UPDATES (Only triggers if you are Admin)
+    if (isAdminSession) {
+      axios.get(`${SERVER_URL}/api/check-updates`).then(res => {
+        if (res.data.updateAvailable) {
+          setHasUpdate(true);
+          setCommitsBehind(res.data.commits);
+        }
+      }).catch(() => {});
+    }
+
     const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
     const onDisconnect = () => setIsOnline(false);
 
@@ -480,6 +544,9 @@ const App = () => {
 
     socket.on('incoming-transfer', (data) => {
        setRoomItems((prev) => {
+         // STRICT ROOM LOCK: Ignore live uploads happening in other rooms
+         if (data.room !== activeRoom) return prev;
+         
          if (prev.some(f => (f.downloadUrl && f.downloadUrl === data.downloadUrl) || (f.isFolder && f.id === data.id))) return prev;
          return [data, ...prev];
        });
@@ -487,9 +554,11 @@ const App = () => {
     });
     
     socket.on('force-db-sync', (freshHistory) => {
-      const validRoomItems = activeRoom === 'Admin Only' || godMode || displayUsername.toLowerCase() === 'veer_dev'
-        ? freshHistory 
-        : freshHistory.filter((f: any) => f.room === activeRoom && (!f.targetRecipient || f.targetRecipient === 'Everyone' || f.targetRecipient === username || f.sender === username));
+      // STRICT ROOM LOCK: Files only ever show up in the exact room they were uploaded to.
+      const validRoomItems = freshHistory.filter((f: any) => 
+        f.room === activeRoom && 
+        (!f.targetRecipient || f.targetRecipient === 'Everyone' || f.targetRecipient === displayUsername || f.sender === displayUsername)
+      );
       setRoomItems(validRoomItems);
     });
 
@@ -626,6 +695,8 @@ const App = () => {
       playSuccess(); 
       setFireParticles(true);
       setTimeout(() => { setFireParticles(false); }, 3000);
+      // FORCE THE VAULT TO SYNC THE MASTER DATABASE
+      socket.emit('request-master-sync');
     }
   };
 
@@ -757,12 +828,43 @@ const App = () => {
         `}</style>
         
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
-        <form onSubmit={handleNameLogin} className="bg-[#121212] p-10 rounded-2xl border border-gray-800 text-center shadow-[0_0_50px_rgba(255,215,0,0.05)] w-11/12 max-w-md relative z-10 backdrop-blur-xl animate-spring">
-          <div className="w-16 h-16 bg-[#FFD700]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#FFD700]/20"><ShieldCheck size={32} className="text-[#FFD700]" /></div>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-widest flex justify-center"><AnimatedText text="MVK NET" delayOffset={0.1} /></h1>
-          <input type="text" autoFocus placeholder="Enter your name" className="w-full bg-[#0a0a0a] border-2 border-gray-800 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-[#FFD700] transition-colors mb-6 text-center text-xl shadow-inner" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
-          <button type="submit" disabled={isConnecting || !username.trim()} className="w-full bg-[#FFD700] text-black font-bold py-4 rounded-xl hover:bg-[#e6c200] transition-colors shadow-[0_0_20px_rgba(255,215,0,0.3)] mac-click">{isConnecting ? 'Authenticating...' : 'Initialize Uplink'}</button>
-        </form>
+        <div className="bg-[#121212] p-10 rounded-2xl border border-gray-800 text-center shadow-[0_0_50px_rgba(255,215,0,0.05)] w-11/12 max-w-md relative z-10 backdrop-blur-xl animate-spring">
+          
+          {authStep === 'name' && (
+            <form onSubmit={handleNameLogin}>
+              <div className="w-16 h-16 bg-[#FFD700]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#FFD700]/20"><ShieldCheck size={32} className="text-[#FFD700]" /></div>
+              <h1 className="text-3xl font-bold text-white mb-2 tracking-widest flex justify-center"><AnimatedText text="MVK NET" delayOffset={0.1} /></h1>
+              <p className="text-gray-500 text-xs mb-6 uppercase tracking-widest">Identify Yourself</p>
+              <input type="text" autoFocus placeholder="Enter your name" className="w-full bg-[#0a0a0a] border-2 border-gray-800 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-[#FFD700] transition-colors mb-6 text-center text-xl shadow-inner" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
+              <button type="submit" disabled={isConnecting || !username.trim()} className="w-full bg-[#FFD700] text-black font-bold py-4 rounded-xl hover:bg-[#e6c200] transition-colors shadow-[0_0_20px_rgba(255,215,0,0.3)] mac-click">{isConnecting ? 'Authenticating...' : 'Initialize Uplink'}</button>
+            </form>
+          )}
+
+          {authStep === 'setup_pin' && (
+            <div className="animate-scale-in">
+              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30"><Lock size={32} className="text-blue-500" /></div>
+              <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Secure Your Tag</h1>
+              <p className="text-gray-400 text-sm mb-6">Create a 4-digit PIN for <strong className="text-blue-400">{username}</strong>. You will need this to log in from other devices.</p>
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className="w-full bg-black/50 border-2 border-gray-800 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-blue-500 transition-colors mb-6 text-center text-2xl tracking-[1em] shadow-inner" value={authPin} onChange={(e) => { const val = e.target.value; setAuthPin(val); if (val.length === 4) submitAuthPin('setup'); }} disabled={isConnecting} />
+              <button onClick={() => submitAuthPin('setup')} disabled={authPin.length !== 4 || isConnecting} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-500 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.4)] mac-click mb-3">Lock Identity</button>
+              <button onClick={() => { playSuccess(); socket.auth = { username }; socket.connect(); }} className="text-gray-500 text-xs font-bold hover:text-white transition-colors uppercase">Skip for now</button>
+            </div>
+          )}
+
+          {authStep === 'challenge' && (
+            <div className={`animate-scale-in ${pinErrorText ? 'animate-shake' : ''}`}>
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30"><ShieldCheck size={32} className="text-red-500" /></div>
+              <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Unrecognized Device</h1>
+              <p className="text-gray-400 text-sm mb-2">The tag <strong className="text-red-400">{username}</strong> is claimed. Enter the PIN to authorize this device.</p>
+              <p className="text-red-500 text-xs font-bold h-4 mb-4">{pinErrorText}</p>
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className={`w-full bg-black/50 border-2 text-white px-4 py-4 rounded-xl focus:outline-none transition-colors mb-6 text-center text-2xl tracking-[1em] shadow-inner ${pinErrorText ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-red-500'}`} value={authPin} onChange={(e) => { setAuthPin(e.target.value); setPinErrorText(''); }} onKeyDown={(e) => e.key === 'Enter' && submitAuthPin('verify')} disabled={isConnecting} />
+              <div className="flex gap-3">
+                <button onClick={() => { setAuthStep('name'); setUsername(''); setAuthPin(''); setPinErrorText(''); }} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-colors mac-click">Cancel</button>
+                <button onClick={() => submitAuthPin('verify')} disabled={authPin.length !== 4 || isConnecting} className="flex-[2] bg-red-600 text-white font-bold py-4 rounded-xl hover:bg-red-500 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)] mac-click">Verify Identity</button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {customAlert && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] px-4 backdrop-blur-md animate-spring">
@@ -958,13 +1060,30 @@ const App = () => {
             <div className="w-full bg-gray-900 rounded-full h-1.5 overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-1000 ease-out ${storageUsed >= 90 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : `${brandBg} shadow-[0_0_10px_currentColor]`}`} style={{ width: `${Math.min((storageUsed / STORAGE_LIMIT) * 100, 100)}%` }}></div></div>
           </div>
         </div>
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto relative z-10 mt-2 pb-[100px]">
-          {rooms.map((room) => (
-            <button key={room.name} onClick={() => attemptRoomJoin(room.name)} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all mac-click ${activeRoom === room.name ? `${brandBg}/10 ${brandColor} border ${brandBorder}/30 shadow-[0_0_15px_currentColor]` : 'hover:bg-white/5 text-gray-400'}`}>
-              <div className="flex items-center gap-3"><span className={`${activeRoom === room.name ? brandColor : 'text-gray-400'}`}>{room.icon}</span><span className="font-medium text-sm">{room.name}</span></div>
-              {room.locked && activeRoom !== room.name && <Lock size={14} className="text-gray-600" />}
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto relative z-10 mt-2 pb-[100px] flex flex-col">
+          <div>
+            {rooms.map((room) => (
+              <button key={room.name} onClick={() => attemptRoomJoin(room.name)} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all mb-2 mac-click ${activeRoom === room.name ? `${brandBg}/10 ${brandColor} border ${brandBorder}/30 shadow-[0_0_15px_currentColor]` : 'hover:bg-white/5 text-gray-400'}`}>
+                <div className="flex items-center gap-3"><span className={`${activeRoom === room.name ? brandColor : 'text-gray-400'}`}>{room.icon}</span><span className="font-medium text-sm">{room.name}</span></div>
+                {room.locked && activeRoom !== room.name && <Lock size={14} className="text-gray-600" />}
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-auto flex flex-col gap-2">
+            {hasUpdate && (
+              <div className="mx-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex flex-col gap-1 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <div className="flex items-center gap-2 text-blue-400 font-bold text-[10px] uppercase tracking-widest">
+                  <Download size={12} className="animate-bounce" /> System Update Ready
+                </div>
+                <p className="text-[10px] text-gray-400 leading-tight">Beast PC is {commitsBehind} version(s) behind. Run Update_Vault.bat.</p>
+              </div>
+            )}
+            <button onClick={() => setShowCredits(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-white/5 hover:text-white transition-all mac-click border border-transparent hover:border-white/10">
+              <ShieldCheck size={18} />
+              <span className="font-medium text-sm">Credits & License</span>
             </button>
-          ))}
+          </div>
         </nav>
         <div className="absolute bottom-0 w-full h-[56px] shrink-0 border-t border-gray-800 flex items-center gap-3 px-6 bg-[#121212] z-10">
           {godMode ? (
@@ -1179,10 +1298,95 @@ const App = () => {
         </div>
 
         <footer className="absolute bottom-0 w-full h-[56px] bg-[#0a0a0a]/90 backdrop-blur-xl border-t border-gray-800 flex justify-center items-center z-30">
-          <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-[9px] md:text-[11px] tracking-[0.15em] uppercase text-center px-4"><span className="text-gray-500 font-medium hidden sm:inline">System Architect</span><div className={`hidden sm:block w-1 h-1 ${brandBg} rounded-full animate-pulse shadow-[0_0_8px_currentColor]`}></div><span className={`${brandColor} font-bold text-[10px] md:text-[12px] tracking-[0.2em]`}>VEER MADAN</span><div className={`hidden sm:block w-1 h-1 ${brandBg} rounded-full shadow-[0_0_8px_currentColor]`}></div><span className="text-gray-500 font-medium hidden sm:inline">IT & Digital Marketing</span></div>
+          <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-[9px] md:text-[11px] tracking-[0.15em] uppercase text-center px-4">
+            <span className={`${brandColor} font-bold text-[10px] md:text-[12px] tracking-[0.2em]`}>MVK BUILDERS AND DEVELOPERS NETWORK</span>
+            <div className={`hidden sm:block w-1 h-1 ${brandBg} rounded-full animate-pulse shadow-[0_0_8px_currentColor]`}></div>
+            <span className="text-gray-500 font-medium hidden sm:inline">© {new Date().getFullYear()}</span>
+          </div>
         </footer>
 
         {/* ALERTS & MODALS */}
+        {/* CREDITS & LICENSE MODAL (ENHANCED ENTERPRISE EDITION) */}
+        {showCredits && (
+          <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[500] p-4 backdrop-blur-xl animate-spring">
+            {/* Ambient Background Glow */}
+            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] ${brandBg} rounded-full blur-[120px] opacity-10 pointer-events-none`}></div>
+            
+            <div className="bg-[#0a0a0a]/90 border border-white/10 p-1 rounded-3xl w-full max-w-2xl shadow-[0_30px_100px_rgba(0,0,0,1)] relative z-10 overflow-hidden">
+              <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-${godMode?'red-500':'[#FFD700]'} to-transparent opacity-50`}></div>
+              
+              <div className="bg-[#121212] rounded-[22px] p-6 sm:p-8 relative overflow-hidden">
+                <button onClick={() => setShowCredits(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white transition-all hover:rotate-90 mac-click z-20 bg-black/50 p-2 rounded-full border border-white/5"><X size={20} /></button>
+                
+                {/* Header Section */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8 relative z-10">
+                  <div className="relative group shrink-0">
+                    <div className={`absolute inset-0 ${brandBg} blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-2xl`}></div>
+                    <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-4xl font-black text-black shadow-[0_0_20px_currentColor] ${brandBg} relative z-10 border border-white/20 overflow-hidden`}>
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent"></div>
+                      VM
+                    </div>
+                    <div className="absolute -bottom-3 -right-3 bg-black border border-white/10 p-1.5 rounded-lg z-20 shadow-xl">
+                      <ShieldCheck size={18} className={brandColor} />
+                    </div>
+                  </div>
+                  
+                  <div className="text-center sm:text-left flex-1 mt-2 sm:mt-0">
+                    <div className="inline-flex px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-3 items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${brandBg} animate-pulse shadow-[0_0_8px_currentColor]`}></span>
+                      Level 5 Clearance
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight mb-1">Veer Madan</h2>
+                    <p className={`${brandColor} font-bold text-xs sm:text-sm uppercase tracking-[0.2em] flex items-center justify-center sm:justify-start gap-2`}>
+                      <Cpu size={16} /> Lead System Architect
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Body Section */}
+                <div className="space-y-3 relative z-10">
+                  <div className="group bg-black/50 border border-white/5 p-4 sm:p-5 rounded-2xl hover:border-white/10 transition-colors">
+                    <h3 className="text-white font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-2">
+                      <Code size={14} className="text-blue-400" /> System Architecture
+                    </h3>
+                    <p className="text-sm text-gray-400 leading-relaxed font-medium">
+                      This proprietary distribution network is custom-engineered exclusively for the <strong className="text-gray-200">MVK Builders and Developers Head Office</strong> to execute secure, high-velocity, local area asset management.
+                    </p>
+                  </div>
+                  
+                  <div className="group bg-black/50 border border-white/5 p-4 sm:p-5 rounded-2xl hover:border-white/10 transition-colors">
+                    <h3 className="text-white font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-2">
+                      <Lock size={14} className="text-red-400" /> Licensing & Usage Rights
+                    </h3>
+                    <p className="text-sm text-gray-400 leading-relaxed font-medium">
+                      Licensed strictly for internal operations. Commercialization outside the organization is strictly prohibited. I reserve the exclusive right to reference this engineering architecture in my professional portfolio and work experience.
+                    </p>
+                  </div>
+                  
+                  <div className="group bg-black/50 border border-white/5 p-4 sm:p-5 rounded-2xl hover:border-white/10 transition-colors">
+                    <h3 className="text-white font-bold uppercase tracking-widest text-xs flex items-center gap-2 mb-2">
+                      <Clock size={14} className="text-green-400" /> Long-Term Support (LTS)
+                    </h3>
+                    <p className="text-sm text-gray-400 leading-relaxed font-medium">
+                      Regardless of my active employment status within the company, I will remain bound to provide critical technical support, patches, and maintenance for this infrastructure.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Footer / Branding */}
+                <div className="mt-6 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-default">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-black ${brandBg}`}>MVK</div>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-white leading-tight">Builders & Developers<br/><span className="text-gray-500">Authorized Network</span></span>
+                  </div>
+                  <div className="text-[9px] font-mono text-gray-600 tracking-widest text-center sm:text-right">
+                    CORE.V.1.0.0<br/>DEPLOYED 2026
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {previewFile && (
           <div className="fixed inset-0 bg-black/95 flex flex-col z-[200] animate-spring backdrop-blur-xl">
             <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 shrink-0 bg-black/50">
