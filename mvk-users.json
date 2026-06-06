@@ -6,5 +6,12 @@
     ],
     "pin": "9999",
     "displayName": "Veer#5071"
+  },
+  "vghg#4153": {
+    "devices": [
+      "9kz4fhqz2y"
+    ],
+    "pin": null,
+    "displayName": "vghg#4153"
   }
 }
