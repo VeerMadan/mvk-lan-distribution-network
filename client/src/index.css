@@ -1,1 +1,75 @@
 @import "tailwindcss";
+@keyframes springPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  50% { transform: scale(1.02) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes headShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.animate-spring {
+  animation: springPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-shake {
+  animation: headShake 0.4s ease-in-out forwards;
+}
+
+/* The secret sauce for Mac-like buttons */
+.mac-click {
+  @apply active:scale-95 transition-all duration-200 ease-out;
+}
+/* Smooth glide for switching rooms */
+@keyframes vaultEnter {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-vault-enter {
+  animation: vaultEnter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Bouncy drop-in for new files */
+@keyframes fileDrop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-file-drop {
+  animation: fileDrop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  opacity: 0; /* Keeps it invisible for a split second before the animation starts */
+}
+/* Individual Letter Slide & Focus */
+@keyframes letterSlideUp {
+  0% { 
+    opacity: 0; 
+    transform: translateY(15px) scale(0.95); 
+    filter: blur(4px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+    filter: blur(0); 
+  }
+}
+
+.animate-letter {
+  display: inline-block;
+  opacity: 0; /* Keeps it hidden until the delay hits */
+  animation: letterSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+/* Mac-style Toast Notification */
+@keyframes toastDrop {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.95); filter: blur(4px); }
+  10% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  90% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-20px) scale(0.95); filter: blur(4px); }
+}
+
+.animate-toast {
+  animation: toastDrop 3.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
