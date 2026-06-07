@@ -909,18 +909,15 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#050505] text-gray-200 overflow-hidden font-sans animate-spring relative" onDrop={(e) => storageUsed < STORAGE_LIMIT && handleDrop(e)} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
+    <div className="flex h-screen cyber-vortex-bg text-gray-200 overflow-hidden font-sans animate-spring relative" onDrop={(e) => storageUsed < STORAGE_LIMIT && handleDrop(e)} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
       
-      {/* --- THE CYBER-VORTEX BACKGROUND --- */}
+      {/* THE BULLETPROOF VORTEX */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-         {/* Slowly rotating conic gradient abyss */}
-         <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#0a0a0a_25%,#151515_50%,#0a0a0a_75%,#000000_100%)] opacity-60"></div>
-         {/* Flowing holographic grid */}
-         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] animate-grid-flow"></div>
-         {/* Vignette shadow to give it 3D depth */}
-         <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_50%,transparent_10%,#050505_100%)]"></div>
+         <div className="vortex-abyss"></div>
+         <div className="vortex-grid"></div>
+         <div className="vortex-vignette"></div>
          
-         {/* Dynamic Brand/GodMode ambient lighting */}
+         {/* Ambient Lighting */}
          {godMode ? (
             <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.15),transparent_70%)] animate-pulse" />
          ) : (

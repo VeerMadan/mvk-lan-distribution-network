@@ -73,3 +73,36 @@
 .animate-toast {
   animation: toastDrop 3.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
+/* --- CYBER VORTEX ENGINE --- */
+.cyber-vortex-bg {
+  background-color: #050505;
+}
+.vortex-abyss {
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(from 90deg at 50% 50%, #000000 0%, #0a0a0a 25%, #151515 50%, #0a0a0a 75%, #000000 100%);
+  opacity: 0.6;
+  animation: spin-slow 60s linear infinite;
+}
+.vortex-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-flow 3s linear infinite;
+}
+.vortex-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle 800px at 50% 50%, transparent 10%, #050505 100%);
+}
+
+@keyframes spin-slow { 
+  100% { transform: rotate(360deg); } 
+}
+@keyframes grid-flow { 
+  0% { transform: translateY(0); } 
+  100% { transform: translateY(60px); } 
+}
