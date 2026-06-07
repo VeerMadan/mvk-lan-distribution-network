@@ -237,7 +237,9 @@ const cleanupUploads = () => {
   const now = Date.now();
 
   try {
-    const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const rawData = fs.readFileSync(DB_PATH, 'utf-8');
+    if (!rawData || rawData.trim() === '') return; // 🛡️ Safety eject!
+    const history = JSON.parse(rawData);
     const freshHistory = history.filter((record: any) => {
       if (record.isFolder) return true; 
 
@@ -270,16 +272,22 @@ setupSockets(io);
 
 io.on('connection', (socket) => {
   socket.on('request-master-sync', () => {
-    if (fs.existsSync(DB_PATH)) {
-      const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-      socket.emit('force-db-sync', history);
-    }
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        const raw = fs.readFileSync(DB_PATH, 'utf-8');
+        const history = (raw && raw.trim() !== '') ? JSON.parse(raw) : [];
+        socket.emit('force-db-sync', history);
+      }
+    } catch(err) { console.error("⚠️ Safely caught empty JSON on master sync"); }
   });
 
   socket.on('create-folder', (folderData) => {
     try {
       let history: any[] = [];
-      if (fs.existsSync(DB_PATH)) history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+      if (fs.existsSync(DB_PATH)) {
+        const raw = fs.readFileSync(DB_PATH, 'utf-8');
+        if (raw && raw.trim() !== '') history = JSON.parse(raw);
+      }
       
       const newFolderRecord = {
         fileName: folderData.folderName,
