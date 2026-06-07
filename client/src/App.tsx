@@ -527,15 +527,13 @@ const App = () => {
   useEffect(() => {
     axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(err => console.error(err));
     
-    // PING GITHUB FOR UPDATES (Only triggers if you are Admin)
-    if (isAdminSession) {
-      axios.get(`${SERVER_URL}/api/check-updates`).then(res => {
-        if (res.data.updateAvailable) {
-          setHasUpdate(true);
-          setCommitsBehind(res.data.commits);
-        }
-      }).catch(() => {});
-    }
+    // PING GITHUB FOR UPDATES (Radar active for the entire squad)
+    axios.get(`${SERVER_URL}/api/check-updates`).then(res => {
+      if (res.data.updateAvailable) {
+        setHasUpdate(true);
+        setCommitsBehind(res.data.commits);
+      }
+    }).catch(() => {});
 
     const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
     const onDisconnect = () => setIsOnline(false);
@@ -911,15 +909,33 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-gray-200 overflow-hidden font-sans animate-spring relative" onDrop={(e) => storageUsed < STORAGE_LIMIT && handleDrop(e)} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
+    <div className="flex h-screen bg-[#050505] text-gray-200 overflow-hidden font-sans animate-spring relative" onDrop={(e) => storageUsed < STORAGE_LIMIT && handleDrop(e)} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
       
-      {godMode && (
-        <div className="absolute inset-0 z-0 pointer-events-none opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-red-900/30 via-[#0a0a0a] to-[#0a0a0a] animate-pulse" />
-      )}
+      {/* --- THE CYBER-VORTEX BACKGROUND --- */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+         {/* Slowly rotating conic gradient abyss */}
+         <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#0a0a0a_25%,#151515_50%,#0a0a0a_75%,#000000_100%)] opacity-60"></div>
+         {/* Flowing holographic grid */}
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] animate-grid-flow"></div>
+         {/* Vignette shadow to give it 3D depth */}
+         <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_50%,transparent_10%,#050505_100%)]"></div>
+         
+         {/* Dynamic Brand/GodMode ambient lighting */}
+         {godMode ? (
+            <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.15),transparent_70%)] animate-pulse" />
+         ) : (
+            <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.08),transparent_80%)]" />
+         )}
+      </div>
 
       <ParticleCanvas isAnimating={fireParticles} isGodMode={godMode} />
       
       <style>{`
+        /* Vortex & Grid Animations */
+        @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 60s linear infinite; }
+        @keyframes grid-flow { 0% { transform: translateY(0); } 100% { transform: translateY(60px); } }
+        .animate-grid-flow { animation: grid-flow 3s linear infinite; }
         @keyframes file-drop { 0% { transform: translateY(-10px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-file-drop { animation: file-drop 0.3s ease-out both; }
 
