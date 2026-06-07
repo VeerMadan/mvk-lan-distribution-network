@@ -200,7 +200,15 @@ app.post('/api/files/delete', (req: any, res: any) => {
   if (!targets || !Array.isArray(targets)) return res.status(400).json({ error: "Invalid targets array" });
 
   try {
-    const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    let history: any[] = [];
+try {
+  const rawData = fs.readFileSync(DB_PATH, 'utf-8');
+  if (rawData && rawData.trim() !== '') {
+    history = JSON.parse(rawData);
+  }
+} catch (dbErr) {
+  console.error("⚠️ Safely caught empty JSON in upload route. Starting fresh.");
+}
     let dbChanged = false;
 
     targets.forEach((targetId: string) => {
