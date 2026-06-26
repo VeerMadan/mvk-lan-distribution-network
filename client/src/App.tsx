@@ -167,7 +167,7 @@ const App = () => {
   const [pendingAdminName, setPendingAdminName] = useState('');
   const [adminPinInput, setAdminPinInput] = useState('');
 
-  const [previewFile, setPreviewFile] = useState<{url: string, name: string, type: 'image' | 'pdf'} | null>(null);
+  const [previewFile, setPreviewFile] = useState<{url: string, name: string, type: 'image' | 'pdf' | 'video'} | null>(null);
     const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
   const [deletingItemIds, ] = useState<string[]>([]);
 
@@ -689,12 +689,13 @@ const App = () => {
     }
 
     setUploadProgress(0); 
-    if (successCount > 0) {
+   if (successCount > 0) {
       playSuccess(); 
       setFireParticles(true);
       setTimeout(() => { setFireParticles(false); }, 3000);
-      // FORCE THE VAULT TO SYNC THE MASTER DATABASE
-      socket.emit('request-master-sync');
+      
+      // TRIGGER THE GLOBAL BROADCAST INSTEAD OF A LOCAL SYNC
+      socket.emit('trigger-global-sync');
     }
   };
 
@@ -792,14 +793,21 @@ const App = () => {
   
   const checkPreviewable = (fileName: string) => {
     if(!fileName) return false;
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'].includes(fileName.split('.').pop()?.toLowerCase() || '');
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'mp4', 'webm', 'mov'].includes(fileName.split('.').pop()?.toLowerCase() || '');
   }
   
-  const openPreview = (file: any) => setPreviewFile({ 
-    url: `${SERVER_URL}/preview/${encodeURIComponent(file.savedAs || file.fileName)}`, 
-    name: file.fileName, 
-    type: file.fileName.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' 
-  });
+  const openPreview = (file: any) => {
+    const ext = file.fileName.toLowerCase().split('.').pop();
+    let type: 'image' | 'pdf' | 'video' = 'image';
+    if (ext === 'pdf') type = 'pdf';
+    if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video';
+    
+    setPreviewFile({ 
+      url: `${SERVER_URL}/preview/${encodeURIComponent(file.savedAs || file.fileName)}`, 
+      name: file.fileName, 
+      type 
+    });
+  };
 
   const filteredItems = roomItems.filter(item => {
     if (!item.fileName) return false;
@@ -1407,7 +1415,13 @@ const App = () => {
               <div className="flex items-center gap-4"><button onClick={(e) => triggerDownload(e, previewFile.url, previewFile.name)} className={`${brandColor} hover:text-white transition-colors flex items-center gap-2 text-sm font-bold tracking-widest uppercase mac-click`}><Download size={16} /> Save</button><button onClick={() => setPreviewFile(null)} className="text-gray-400 hover:text-white p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors mac-click"><X size={24} /></button></div>
             </header>
             <div className="flex-1 p-4 md:p-8 flex items-center justify-center overflow-hidden relative">
-              {previewFile.type === 'image' ? <img src={previewFile.url} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)]" /> : <iframe src={previewFile.url} className="w-full h-full rounded-lg bg-white" title="PDF Preview" />}
+              {(previewFile.type as string) === 'video' ? (
+                <video src={previewFile.url} controls autoPlay className="max-w-full max-h-[85vh] rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.8)] border border-white/10" />
+              ) : (previewFile.type as string) === 'image' ? (
+                <img src={previewFile.url} alt="Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
+              ) : (
+                <iframe src={previewFile.url} className="w-full h-full rounded-xl bg-white shadow-2xl" title="PDF Preview" />
+              )}
             </div>
           </div>
         )}

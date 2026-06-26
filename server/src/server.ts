@@ -318,6 +318,16 @@ io.on('connection', (socket) => {
   socket.on('file-ready', (fileData) => {
      socket.broadcast.emit('incoming-transfer', fileData);
   });
+  // NEW: The Global Radar Ping
+  socket.on('trigger-global-sync', () => {
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        const raw = fs.readFileSync(DB_PATH, 'utf-8');
+        const history = (raw && raw.trim() !== '') ? JSON.parse(raw) : [];
+        io.emit('force-db-sync', history); // io.emit blasts it to EVERYONE, not just the sender
+      }
+    } catch(err) { console.error("⚠️ Safely caught empty JSON on global sync"); }
+  });
 });
 
 const PORT = Number(process.env.PORT || 3000);
