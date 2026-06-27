@@ -10,7 +10,7 @@ export default defineConfig({
   preview: {
     host: true,
     port: 80,
-    strictPort: true, // This forces Vite to crash if Port 80 is taken, rather than silently switching to 5173
-    allowedHosts: ['mvk-network.in']
+    strictPort: true,
+    allowedHosts: true // <-- THIS IS THE MAGIC KEY
   }
 });

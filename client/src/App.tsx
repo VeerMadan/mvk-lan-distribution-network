@@ -426,7 +426,7 @@ const App = () => {
 "Wrong PIN. Please submit a formal apology to the numpad.",
 "That attempt was so bad the logs are refusing to record it.",
 "You've unlocked a new achievement: Spectacularly Incorrect.",
-// "rm -rf your confidence. It's not serving you.",
+"Uninstallyour confidence. It's not serving you.",
 "Bro treats a PIN pad like it's multiple choice.",
 "The PIN is not 'vibes'. Try again.",
 "Sir this is not a captcha. There's no excuse.",
