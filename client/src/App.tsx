@@ -4,7 +4,7 @@ import { Share2, Users, Activity, ShieldCheck, Download, FileText, Lock, Menu, X
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
-const SERVER_URL = `http://${window.location.hostname}:3000`;
+const SERVER_URL = window.location.origin;
 const socket = io(SERVER_URL, { autoConnect: false, transports: ['websocket', 'polling'] });
 
 const ROOM_PINS: Record<string, string> = {
@@ -426,7 +426,7 @@ const App = () => {
 "Wrong PIN. Please submit a formal apology to the numpad.",
 "That attempt was so bad the logs are refusing to record it.",
 "You've unlocked a new achievement: Spectacularly Incorrect.",
-"Uninstallyour confidence. It's not serving you.",
+"Uninstall your confidence. It's not serving you.",
 "Bro treats a PIN pad like it's multiple choice.",
 "The PIN is not 'vibes'. Try again.",
 "Sir this is not a captcha. There's no excuse.",

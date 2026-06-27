@@ -11,6 +11,12 @@ export default defineConfig({
     host: true,
     port: 80,
     strictPort: true,
-    allowedHosts: true // <-- THIS IS THE MAGIC KEY
+    allowedHosts: true,
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+      '/download': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+      '/preview': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+      '/socket.io': { target: 'http://127.0.0.1:3000', ws: true }
+    }
   }
 });
