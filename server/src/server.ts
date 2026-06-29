@@ -289,6 +289,37 @@ io.on('connection', (socket) => {
     } catch(err) { console.error("⚠️ Safely caught empty JSON on master sync"); }
   });
 
+  // NEW: TIME EXTENSION PROTOCOL
+  socket.on('extend-expiry', (data) => {
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        let history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        const addedMs = data.addedHours * 3600000;
+        
+        if (data.isFolder) {
+          history = history.map((item: any) => {
+            if (item.id === data.identifier || item.parentId === data.identifier) {
+              if (item.expiresAt) item.expiresAt += addedMs;
+            }
+            return item;
+          });
+        } else {
+          history = history.map((item: any) => {
+            if ((item.savedAs === data.identifier || item.fileName === data.identifier) && item.expiresAt) {
+              item.expiresAt += addedMs;
+            }
+            return item;
+          });
+        }
+        
+        fs.writeFileSync(DB_PATH, JSON.stringify(history, null, 2));
+        io.emit('force-db-sync', history); 
+      }
+    } catch(err) { 
+      console.error("⚠️ Failed to execute Time Extension Protocol:", err); 
+    }
+  });
+
   socket.on('create-folder', (folderData) => {
     try {
       let history: any[] = [];

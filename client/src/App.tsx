@@ -726,6 +726,18 @@ const App = () => {
       setIsBatchDownloading(false);
     }
   };
+
+  const handleExtendExpiry = (item: any) => {
+    socket.emit('extend-expiry', { 
+      identifier: item.savedAs || item.fileName,
+      isFolder: item.isFolder,
+      addedHours: 24 
+    });
+    setToastMsg(`Life support extended by 24h for ${item.fileName}`);
+    setTimeout(() => setToastMsg(''), 3000);
+    setContextMenu({ show: false, x: 0, y: 0, file: null });
+  };
+
   const promptDelete = (identifier: string) => {
     setFilesToDelete([identifier]);
   };
@@ -991,7 +1003,12 @@ const App = () => {
             </>
           )}
           {(contextMenu.file.sender === displayUsername || isAdminSession) && (
-            <button onClick={() => promptDelete(contextMenu.file.savedAs || contextMenu.file.fileName)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors mt-2 border-t border-white/5 pt-3 mac-click"><Trash2 size={16} /> Purge from Node</button>
+            <>
+              <button onClick={() => handleExtendExpiry(contextMenu.file)} className="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-green-400/10 hover:text-green-300 flex items-center gap-3 transition-colors mt-2 border-t border-white/5 pt-3 mac-click">
+                <Clock size={16} /> Extend Protocol (+24h)
+              </button>
+              <button onClick={() => promptDelete(contextMenu.file.savedAs || contextMenu.file.fileName)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors mt-1 mac-click"><Trash2 size={16} /> Purge from Node</button>
+            </>
           )}
         </div>
       )}
