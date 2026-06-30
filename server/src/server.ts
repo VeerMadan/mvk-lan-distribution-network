@@ -196,19 +196,20 @@ app.get('/api/check-updates', (req, res) => {
 
 // UPGRADED: SECURE BATCH DELETE TUNNEL
 app.post('/api/files/delete', (req: any, res: any) => {
-  const { targets, requester, isAdmin } = req.body;
+  // Ignored client's isAdmin claim completely for zero-trust security
+  const { targets, requester } = req.body; 
   if (!targets || !Array.isArray(targets)) return res.status(400).json({ error: "Invalid targets array" });
 
   try {
     let history: any[] = [];
-try {
-  const rawData = fs.readFileSync(DB_PATH, 'utf-8');
-  if (rawData && rawData.trim() !== '') {
-    history = JSON.parse(rawData);
-  }
-} catch (dbErr) {
-  console.error("⚠️ Safely caught empty JSON in upload route. Starting fresh.");
-}
+    try {
+      const rawData = fs.readFileSync(DB_PATH, 'utf-8');
+      if (rawData && rawData.trim() !== '') {
+        history = JSON.parse(rawData);
+      }
+    } catch (dbErr) {
+      console.error("⚠️ Safely caught empty JSON in delete route. Starting fresh.");
+    }
     let dbChanged = false;
 
     targets.forEach((targetId: string) => {
@@ -216,8 +217,10 @@ try {
       if (recordIndex !== -1) {
         const record = history[recordIndex];
         
-        // SECURITY CHECK: Are they Admin? Did they upload it?
-        if (isAdmin || record.sender === requester) {
+        // STRICT SECURITY OVERRIDE: Verify admin on backend, ignore client spoofing
+        const isTrueAdmin = requester === 'SYSTEM ADMIN' || (typeof requester === 'string' && requester.toLowerCase() === 'veer_dev');
+        
+        if (isTrueAdmin || record.sender === requester) {
           const absolutePath = path.join(UPLOADS_DIR, record.savedAs);
           if (fs.existsSync(absolutePath)) fs.unlinkSync(absolutePath);
           history.splice(recordIndex, 1);

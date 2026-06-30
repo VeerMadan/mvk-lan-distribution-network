@@ -16,7 +16,16 @@ export default defineConfig({
       '/api': { target: 'http://127.0.0.1:3000', changeOrigin: true },
       '/download': { target: 'http://127.0.0.1:3000', changeOrigin: true },
       '/preview': { target: 'http://127.0.0.1:3000', changeOrigin: true },
-      '/socket.io': { target: 'http://127.0.0.1:3000', ws: true }
+      '/socket.io': { 
+        target: 'http://127.0.0.1:3000', 
+        ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            // Silently catch and swallow expected WebSocket disconnects
+            if (err.message.includes('ECONNRESET')) return; 
+          });
+        }
+      }
     }
   }
 });
