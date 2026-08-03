@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, HardDrive, Lock, Download, ShieldCheck } from 'lucide-react';
+import { X, HardDrive, Lock, Download, ShieldCheck, LogOut } from 'lucide-react';
 
 const getAvatarGradient = (name: string) => {
   let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -17,7 +17,8 @@ const railFor = (room: any) => {
 export default function Sidebar(props: any) {
   const {
     isMobileMenuOpen, setIsMobileMenuOpen, activeRoom, attemptRoomJoin, rooms,
-    storageUsed, STORAGE_LIMIT, hasUpdate, commitsBehind, setShowCredits, displayUsername
+    storageUsed, STORAGE_LIMIT, hasUpdate, commitsBehind, setShowCredits, displayUsername,
+    handleSignOut
   } = props;
 
   const storagePct = Math.min((storageUsed / STORAGE_LIMIT) * 100, 100);
@@ -110,19 +111,30 @@ export default function Sidebar(props: any) {
         </nav>
 
         {/* Session footer */}
-        <div className="shrink-0 h-14 flex items-center gap-3 px-5" style={{ borderTop: '1px solid var(--border)' }}>
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-white text-[11px] shrink-0"
-            style={{ background: getAvatarGradient(displayUsername) }}
-          >
-            {displayUsername.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{displayUsername}</div>
-            <div className="flex items-center gap-1.5 text-[10px] vault-mono" style={{ color: 'var(--text-faint)' }}>
-              <span className="w-1.5 h-1.5 rounded-full vault-dot-live" /> ONLINE
+        <div className="shrink-0 h-14 flex items-center justify-between px-5" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center font-semibold text-white text-[11px] shrink-0"
+              style={{ background: getAvatarGradient(displayUsername) }}
+            >
+              {displayUsername.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-semibold" style={{ color: 'var(--text)' }}>{displayUsername}</div>
+              <div className="flex items-center gap-1.5 text-[10px] vault-mono" style={{ color: 'var(--text-faint)' }}>
+                <span className="w-1.5 h-1.5 rounded-full vault-dot-live" /> ONLINE
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={handleSignOut}
+            className="vault-btn p-2 rounded-md transition-colors shrink-0"
+            style={{ color: 'var(--text-dim)' }}
+            title="Sign Out"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
     </>

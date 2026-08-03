@@ -498,7 +498,16 @@ const App = () => {
       </div>
     );
   }
-
+const handleSignOut = () => {
+    socket.disconnect();
+    setIsNameSet(false);
+    setUsername('');
+    setAuthStep('name');
+    setAuthPin('');
+    setPinErrorText('');
+    setRoomItems([]);
+    setRoomMessages([]);
+  };
   // --- RENDER MAIN APPLICATION ---
   return (
     <div
@@ -517,12 +526,13 @@ const App = () => {
         )}
       </AnimatePresence>
 
-      <Sidebar
+      <Sidebar 
         isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen}
         activeRoom={activeRoom} attemptRoomJoin={attemptRoomJoin} rooms={rooms}
         storageUsed={storageUsed} STORAGE_LIMIT={STORAGE_LIMIT}
         hasUpdate={hasUpdate} commitsBehind={commitsBehind}
         setShowCredits={setShowCredits} displayUsername={displayUsername}
+        handleSignOut={handleSignOut}
       />
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden z-10">
@@ -718,6 +728,7 @@ const App = () => {
       </div>
     </div>
   );
+  
 };
 
 export default App;
