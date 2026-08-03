@@ -1,181 +1,70 @@
+@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 /* ==========================================================================
    MVK VAULT — Design tokens ("Ledger / Ops Console")
    ========================================================================== */
 
-@layer base {
-  :root {
-    --bg: #F5F6F7;
-    --surface: #FFFFFF;
-    --surface-raised: #FAFBFC;
-    --surface-sunken: #EEF0F2;
-    --border: #E1E4E8;
-    --border-strong: #C9CDD3;
-    --text: #14171B;
-    --text-dim: #6B7280;
-    --text-faint: #9CA3AF;
+:root {
+  --bg: #F5F6F7;
+  --surface: #FFFFFF;
+  --surface-raised: #FAFBFC;
+  --surface-sunken: #EEF0F2;
+  --border: #E1E4E8;
+  --border-strong: #C9CDD3;
+  --text: #14171B;
+  --text-dim: #6B7280;
+  --text-faint: #9CA3AF;
 
-    --accent: #3E5FE0;
-    --accent-hover: #3450C4;
-    --accent-soft: rgba(62, 95, 224, 0.08);
-    --accent-border: rgba(62, 95, 224, 0.25);
+  --accent: #3E5FE0;
+  --accent-hover: #3450C4;
+  --accent-soft: rgba(62, 95, 224, 0.08);
+  --accent-border: rgba(62, 95, 224, 0.25);
 
-    --danger: #D7373F;
-    --danger-soft: rgba(215, 55, 63, 0.08);
-    --success: #1C8A5C;
-    --success-soft: rgba(28, 138, 92, 0.10);
-    --warning: #B4740E;
-    --warning-soft: rgba(180, 116, 14, 0.10);
+  --danger: #D7373F;
+  --danger-soft: rgba(215, 55, 63, 0.08);
+  --success: #1C8A5C;
+  --success-soft: rgba(28, 138, 92, 0.10);
+  --warning: #B4740E;
+  --warning-soft: rgba(180, 116, 14, 0.10);
 
-    --shadow-sm: 0 1px 2px rgba(15, 18, 22, 0.06);
-    --shadow-md: 0 4px 16px rgba(15, 18, 22, 0.08);
-    --shadow-lg: 0 12px 32px rgba(15, 18, 22, 0.14);
-  }
-
-  .dark {
-    --bg: #0B0D10;
-    --surface: #14171B;
-    --surface-raised: #1B1F24;
-    --surface-sunken: #0E1013;
-    --border: #262B31;
-    --border-strong: #363C44;
-    --text: #E8EAED;
-    --text-dim: #8B929B;
-    --text-faint: #565D66;
-
-    --accent: #5C82F0;
-    --accent-hover: #7396F5;
-    --accent-soft: rgba(92, 130, 240, 0.12);
-    --accent-border: rgba(92, 130, 240, 0.3);
-
-    --danger: #EF5A61;
-    --danger-soft: rgba(239, 90, 97, 0.12);
-    --success: #3FCE8C;
-    --success-soft: rgba(63, 206, 140, 0.12);
-    --warning: #E3A53E;
-    --warning-soft: rgba(227, 165, 62, 0.12);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5);
-  }
-
-  html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  --shadow-sm: 0 1px 2px rgba(15, 18, 22, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 18, 22, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 18, 22, 0.14);
 }
 
-@layer components {
-  /* --- Surfaces --- */
-  .vault-panel {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-  }
-  .vault-elevated {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
-  }
-  .vault-sunken {
-    background-color: var(--surface-sunken);
-    border: 1px solid var(--border);
-  }
-  .vault-scrim {
-    background-color: rgba(6, 8, 10, 0.55);
-    backdrop-filter: blur(4px);
-  }
+.dark {
+  --bg: #0B0D10;
+  --surface: #14171B;
+  --surface-raised: #1B1F24;
+  --surface-sunken: #0E1013;
+  --border: #262B31;
+  --border-strong: #363C44;
+  --text: #E8EAED;
+  --text-dim: #8B929B;
+  --text-faint: #565D66;
 
-  /* --- Clearance rail --- */
-  .rail-open   { box-shadow: inset 3px 0 0 var(--accent); }
-  .rail-locked { box-shadow: inset 3px 0 0 var(--warning); }
-  .rail-admin  { box-shadow: inset 3px 0 0 var(--danger); }
-  .rail-none   { box-shadow: inset 3px 0 0 transparent; }
+  --accent: #5C82F0;
+  --accent-hover: #7396F5;
+  --accent-soft: rgba(92, 130, 240, 0.12);
+  --accent-border: rgba(92, 130, 240, 0.3);
 
-  /* --- Interactive rows --- */
-  .vault-row {
-    border-bottom: 1px solid var(--border);
-    transition: background-color 120ms ease;
-  }
-  .vault-row:hover { background-color: var(--surface-raised); }
-  .vault-row:last-child { border-bottom: none; }
+  --danger: #EF5A61;
+  --danger-soft: rgba(239, 90, 97, 0.12);
+  --success: #3FCE8C;
+  --success-soft: rgba(63, 206, 140, 0.12);
+  --warning: #E3A53E;
+  --warning-soft: rgba(227, 165, 62, 0.12);
 
-  .vault-item {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    transition: border-color 120ms ease, background-color 120ms ease;
-  }
-  .vault-item:hover { background-color: var(--surface-raised); border-color: var(--border-strong); }
-  .vault-item.is-selected { background-color: var(--accent-soft); border-color: var(--accent-border); }
-
-  /* --- Nav / directory tree --- */
-  .vault-nav-item {
-    color: var(--text-dim);
-    transition: background-color 120ms ease, color 120ms ease;
-  }
-  .vault-nav-item:hover { background-color: var(--surface-raised); color: var(--text); }
-  .vault-nav-item.is-active { background-color: var(--accent-soft); color: var(--text); }
-
-  /* --- Buttons --- */
-  .vault-btn {
-    transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
-  }
-  .vault-btn:active { transform: scale(0.98); }
-  .vault-btn-primary {
-    background-color: var(--accent);
-    color: white;
-  }
-  .vault-btn-primary:hover { background-color: var(--accent-hover); }
-  .vault-btn-secondary {
-    background-color: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text);
-  }
-  .vault-btn-secondary:hover { background-color: var(--surface-raised); }
-  .vault-btn-danger {
-    background-color: var(--danger);
-    color: white;
-  }
-  .vault-btn-danger:hover { filter: brightness(1.08); }
-
-  /* --- Inputs --- */
-  .vault-input {
-    background-color: var(--surface-sunken);
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-  .vault-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  .vault-input::placeholder { color: var(--text-faint); }
-
-  /* --- Badges / status --- */
-  .vault-badge {
-    font-family: 'IBM Plex Mono', monospace;
-    letter-spacing: 0.02em;
-  }
-  .vault-dot-live {
-    background-color: var(--success);
-    box-shadow: 0 0 0 3px var(--success-soft);
-  }
-
-  /* --- Toolbar --- */
-  .vault-toolbar {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
-  }
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5);
 }
+
+html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+.font-mono, .vault-mono { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace; }
 
 @layer utilities {
-  .font-mono, .vault-mono { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace; }
-
-  /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -184,7 +73,6 @@
     scrollbar-width: none; 
   }
 
-  /* Premium Apple Glassmorphism */
   .glass-card {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
@@ -211,7 +99,6 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
-  /* The Floating Upload Dock */
   .mac-dock { 
     background: rgba(30, 30, 30, 0.6); 
     backdrop-filter: blur(40px); 
@@ -227,17 +114,119 @@
   }
 }
 
-/* --- Scrollbar --- */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+/* --- Surfaces --- */
+.vault-panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.vault-elevated {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.vault-sunken {
+  background-color: var(--surface-sunken);
+  border: 1px solid var(--border);
+}
+.vault-scrim {
+  background-color: rgba(6, 8, 10, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+/* --- Clearance rail --- */
+.rail-open   { box-shadow: inset 3px 0 0 var(--accent); }
+.rail-locked { box-shadow: inset 3px 0 0 var(--warning); }
+.rail-admin  { box-shadow: inset 3px 0 0 var(--danger); }
+.rail-none   { box-shadow: inset 3px 0 0 transparent; }
+
+/* --- Interactive rows --- */
+.vault-row {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 120ms ease;
+}
+.vault-row:hover { background-color: var(--surface-raised); }
+.vault-row:last-child { border-bottom: none; }
+
+.vault-item {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.vault-item:hover { background-color: var(--surface-raised); border-color: var(--border-strong); }
+.vault-item.is-selected { background-color: var(--accent-soft); border-color: var(--accent-border); }
+
+/* --- Nav / directory tree --- */
+.vault-nav-item {
+  color: var(--text-dim);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.vault-nav-item:hover { background-color: var(--surface-raised); color: var(--text); }
+.vault-nav-item.is-active { background-color: var(--accent-soft); color: var(--text); }
+
+/* --- Buttons --- */
+.vault-btn {
+  transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.vault-btn:active { transform: scale(0.98); }
+.vault-btn-primary {
+  background-color: var(--accent);
+  color: white;
+}
+.vault-btn-primary:hover { background-color: var(--accent-hover); }
+.vault-btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+.vault-btn-secondary:hover { background-color: var(--surface-raised); }
+.vault-btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+.vault-btn-danger:hover { filter: brightness(1.08); }
+
+/* --- Inputs --- */
+.vault-input {
+  background-color: var(--surface-sunken);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.vault-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.vault-input::placeholder { color: var(--text-faint); }
+
+/* --- Badges / status --- */
+.vault-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.02em;
+}
+.vault-dot-live {
+  background-color: var(--success);
+  box-shadow: 0 0 0 3px var(--success-soft);
+}
+
+/* --- Toolbar --- */
+.vault-toolbar {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
 
 /* --- Focus visibility (accessibility floor) --- */
 a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
 /* --- Motion --- */
 @media (prefers-reduced-motion: reduce) {
