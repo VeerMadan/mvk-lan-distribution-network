@@ -2,17 +2,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* ==========================================================================
-   MVK VAULT — Premium Gold & Graphite iOS Edition
+   MVK VAULT — Premium Gold & Graphite (Anti-Glare iOS Edition)
    ========================================================================== */
 
 :root {
-  --bg: #F5F6F7;
-  --surface: #FFFFFF;
-  --surface-raised: #FAFBFC;
-  --surface-sunken: #EEF0F2;
-  --border: #E1E4E8;
-  --border-strong: #C9CDD3;
-  --text: #14171B;
+  /* ANTI-GLARE LIGHT THEME */
+  --bg: #E9ECEF;             /* Deep matte background to reduce eye strain */
+  --surface: #F4F6F8;        /* Soft paper off-white */
+  --surface-raised: #FFFFFF; /* True white ONLY pops on hover/elevation */
+  --surface-sunken: #DFE3E7; 
+  --border: #D1D5DB;
+  --border-strong: #9CA3AF;
+  
+  --text: #2D3139;           /* Deep graphite instead of stark black */
   --text-dim: #6B7280;
   --text-faint: #9CA3AF;
 
@@ -29,12 +31,13 @@
   --warning: #B4740E;
   --warning-soft: rgba(180, 116, 14, 0.10);
 
-  --shadow-sm: 0 1px 2px rgba(15, 18, 22, 0.06);
-  --shadow-md: 0 4px 16px rgba(15, 18, 22, 0.08);
-  --shadow-lg: 0 12px 32px rgba(15, 18, 22, 0.14);
+  --shadow-sm: 0 2px 4px rgba(15, 18, 22, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 18, 22, 0.06);
+  --shadow-lg: 0 16px 40px rgba(15, 18, 22, 0.08);
 }
 
 .dark {
+  /* DARK THEME REMAINS INTACT */
   --bg: #0B0D10;
   --surface: #14171B;
   --surface-raised: #1B1F24;
@@ -72,10 +75,11 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 
   /* iOS Frosted Glass */
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+    border: 1px solid rgba(255, 255, 255, 0.4);
   }
 
   .dark .glass-card {
@@ -103,10 +107,10 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 }
 
 /* --- Surfaces & Components --- */
-.vault-panel { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(15, 18, 22, 0.06); }
-.vault-elevated { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(15, 18, 22, 0.14); }
+.vault-panel { background-color: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.vault-elevated { background-color: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
 .vault-sunken { background-color: var(--surface-sunken); border: 1px solid var(--border); }
-.vault-scrim { background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.vault-scrim { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
 /* --- Clearance rail --- */
 .rail-open   { box-shadow: inset 3px 0 0 var(--accent); }
@@ -114,41 +118,64 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 .rail-admin  { box-shadow: inset 3px 0 0 var(--danger); }
 .rail-none   { box-shadow: inset 3px 0 0 transparent; }
 
-/* --- Interactive Elements --- */
-.vault-row { border-bottom: 1px solid var(--border); transition: background-color 0.2s ease; }
-.vault-row:hover { background-color: var(--surface-raised); }
+/* ==========================================================================
+   FLUID HOVER ANIMATIONS
+   ========================================================================== */
+
+/* 1. List View Rows - Slide Right on Hover */
+.vault-row { border-bottom: 1px solid var(--border); transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1); }
+.vault-row:hover { 
+  background-color: var(--surface-raised); 
+  transform: translateX(4px); 
+  box-shadow: -4px 0 0 var(--accent-soft); 
+  border-bottom-color: transparent;
+}
 .vault-row:last-child { border-bottom: none; }
-.vault-item { background-color: var(--surface); border: 1px solid var(--border); transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
-.vault-item:hover { background-color: var(--surface-raised); border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+/* 2. Grid View Cards - Float Up & Glow on Hover */
+.vault-item { background-color: var(--surface); border: 1px solid var(--border); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.vault-item:hover { 
+  background-color: var(--surface-raised); 
+  border-color: var(--accent-border); 
+  transform: translateY(-5px) scale(1.02); 
+  box-shadow: var(--shadow-lg); 
+}
 .vault-item.is-selected { background-color: var(--accent-soft); border-color: var(--accent-border); }
-.vault-nav-item { color: var(--text-dim); transition: all 0.2s ease; }
-.vault-nav-item:hover { background-color: var(--surface-raised); color: var(--text); }
+
+/* 3. Sidebar Navigation - Pop Right on Hover */
+.vault-nav-item { color: var(--text-dim); transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1); }
+.vault-nav-item:hover { 
+  background-color: var(--surface-raised); 
+  color: var(--text); 
+  transform: translateX(6px); 
+}
 .vault-nav-item.is-active { background-color: var(--accent-soft); color: var(--text); }
 
-/* --- Buttons --- */
-.vault-btn { transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
-.vault-btn:active { transform: scale(0.95); }
-.vault-btn-primary { background-color: var(--accent); color: #000000; /* Black text on gold looks sharper */ }
-.vault-btn-primary:hover { background-color: var(--accent-hover); box-shadow: 0 4px 12px var(--accent-soft); }
+/* 4. Buttons - Slight Lift on Hover, Deep Compress on Click */
+.vault-btn { transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+.vault-btn:hover { transform: translateY(-1px); }
+.vault-btn:active { transform: scale(0.94) translateY(0); }
+.vault-btn-primary { background-color: var(--accent); color: #000000; font-weight: 700; }
+.vault-btn-primary:hover { background-color: var(--accent-hover); box-shadow: 0 4px 16px var(--accent-soft); }
 .vault-btn-secondary { background-color: transparent; border: 1px solid var(--border-strong); color: var(--text); }
-.vault-btn-secondary:hover { background-color: var(--surface-raised); }
+.vault-btn-secondary:hover { background-color: var(--surface-raised); box-shadow: var(--shadow-sm); }
 .vault-btn-danger { background-color: var(--danger); color: white; }
-.vault-btn-danger:hover { filter: brightness(1.08); }
+.vault-btn-danger:hover { filter: brightness(1.1); box-shadow: 0 4px 16px var(--danger-soft); }
 
 /* --- Inputs --- */
 .vault-input { background-color: var(--surface-sunken); border: 1px solid var(--border); color: var(--text); transition: all 0.2s ease; }
-.vault-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background-color: var(--surface); }
+.vault-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); background-color: var(--surface); }
 .vault-input::placeholder { color: var(--text-faint); }
 .vault-dot-live { background-color: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
-.vault-toolbar { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(15, 18, 22, 0.08); }
+.vault-toolbar { background-color: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
 /* ==========================================================================
-   Apple iOS Spring Animations
+   Apple iOS Spring Animations (Entry/Exit)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
