@@ -874,39 +874,64 @@ const App = () => {
         `}</style>
         
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
-        <div className="mac-glass-dark p-10 rounded-[2rem] text-center w-11/12 max-w-md relative z-10 animate-spring">
-          
+        <div className="mac-glass-dark p-10 sm:p-12 rounded-[2.5rem] text-center w-11/12 max-w-md relative z-10 animate-spring border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden">
+          {/* Top Edge Highlight Reflection */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+
           {authStep === 'name' && (
-            <form onSubmit={handleNameLogin}>
-              <div className="w-16 h-16 bg-[#FFD700]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#FFD700]/20"><ShieldCheck size={32} className="text-[#FFD700]" /></div>
-              <h1 className="text-3xl font-bold text-white mb-2 tracking-widest flex justify-center"><AnimatedText text="MVK NET" delayOffset={0.1} /></h1>
-              <p className="text-gray-500 text-xs mb-6 uppercase tracking-widest">Identify Yourself</p>
-              <input type="text" autoFocus placeholder="Enter your name" className="w-full bg-[#0a0a0a] border-2 border-gray-800 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-[#FFD700] transition-colors mb-6 text-center text-xl shadow-inner" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
-              <button type="submit" disabled={isConnecting || !username.trim()} className="w-full bg-[#FFD700] text-black font-bold py-4 rounded-xl hover:bg-[#e6c200] transition-colors shadow-[0_0_20px_rgba(255,215,0,0.3)] mac-click">{isConnecting ? 'Authenticating...' : 'Initialize Uplink'}</button>
+            <form onSubmit={handleNameLogin} className="flex flex-col items-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-[2rem] flex items-center justify-center mb-6 border border-white/10 shadow-2xl relative group">
+                <div className="absolute inset-0 bg-[#FFD700]/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                <ShieldCheck size={36} className="text-[#FFD700] relative z-10" />
+              </div>
+              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-2 tracking-widest flex justify-center drop-shadow-lg"><AnimatedText text="MVK NET" delayOffset={0.1} /></h1>
+              <p className="text-gray-500 text-[10px] mb-8 uppercase tracking-[0.3em] font-bold">Secure Access Portal</p>
+
+              <input type="text" autoFocus placeholder="Enter Identity Tag..." className="w-full bg-black/40 border border-white/10 text-white px-6 py-5 rounded-2xl focus:outline-none focus:border-[#FFD700]/50 focus:bg-white/5 focus:ring-4 focus:ring-[#FFD700]/10 transition-all duration-300 mb-6 text-center text-lg font-medium shadow-inner placeholder:text-gray-600 backdrop-blur-md" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
+
+              <button type="submit" disabled={isConnecting || !username.trim()} className="w-full bg-gradient-to-b from-[#FFD700] to-[#e6c200] text-black font-black uppercase tracking-widest py-4 rounded-2xl hover:shadow-[0_0_30px_rgba(255,215,0,0.4)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:scale-100 relative overflow-hidden group">
+                <span className="relative z-10">{isConnecting ? 'Authenticating...' : 'Initialize Uplink'}</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-700 ease-in-out"></div>
+              </button>
             </form>
           )}
 
           {authStep === 'setup_pin' && (
-            <div className="animate-scale-in">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/30"><Lock size={32} className="text-blue-500" /></div>
-              <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Secure Your Tag</h1>
-              <p className="text-gray-400 text-sm mb-6">Create a 4-digit PIN for <strong className="text-blue-400">{username}</strong>. You will need this to log in from other devices.</p>
-              <input type="password" maxLength={4} autoFocus placeholder="••••" className="w-full bg-black/50 border-2 border-gray-800 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-blue-500 transition-colors mb-6 text-center text-2xl tracking-[1em] shadow-inner" value={authPin} onChange={(e) => { const val = e.target.value; setAuthPin(val); if (val.length === 4) submitAuthPin('setup'); }} disabled={isConnecting} />
-              <button onClick={() => submitAuthPin('setup')} disabled={authPin.length !== 4 || isConnecting} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-500 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.4)] mac-click mb-3">Lock Identity</button>
-              <button onClick={() => { playSuccess(); socket.auth = { username }; socket.connect(); }} className="text-gray-500 text-xs font-bold hover:text-white transition-colors uppercase">Skip for now</button>
+            <div className="animate-scale-in flex flex-col items-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-[2rem] flex items-center justify-center mb-6 border border-white/10 shadow-2xl relative group">
+                 <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-100 transition-opacity duration-500"></div>
+                 <Lock size={36} className="text-blue-400 relative z-10" />
+              </div>
+              <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-2 uppercase tracking-widest drop-shadow-lg">Secure Tag</h1>
+              <p className="text-gray-400 text-sm mb-8 font-medium leading-relaxed">Establish 4-digit security code for <strong className="text-blue-400 font-bold">{username}</strong></p>
+
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className="w-full bg-black/40 border border-white/10 text-white px-6 py-5 rounded-2xl focus:outline-none focus:border-blue-500/50 focus:bg-white/5 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 mb-6 text-center text-3xl tracking-[1em] shadow-inner placeholder:text-gray-600 placeholder:tracking-normal backdrop-blur-md font-mono" value={authPin} onChange={(e) => { const val = e.target.value; setAuthPin(val); if (val.length === 4) submitAuthPin('setup'); }} disabled={isConnecting} />
+
+              <button onClick={() => submitAuthPin('setup')} disabled={authPin.length !== 4 || isConnecting} className="w-full bg-gradient-to-b from-blue-500 to-blue-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:scale-100 mb-4 relative overflow-hidden group">
+                <span className="relative z-10">Lock Identity</span>
+                <div className="absolute inset-0 bg-white/20 translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-700 ease-in-out"></div>
+              </button>
             </div>
           )}
 
           {authStep === 'challenge' && (
-            <div className={`animate-scale-in ${pinErrorText ? 'animate-shake' : ''}`}>
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30"><ShieldCheck size={32} className="text-red-500" /></div>
-              <h1 className="text-2xl font-bold text-white mb-2 uppercase tracking-widest">Unrecognized Device</h1>
-              <p className="text-gray-400 text-sm mb-2">The tag <strong className="text-red-400">{username}</strong> is claimed. Enter the PIN to authorize this device.</p>
-              <p className="text-red-500 text-xs font-bold h-4 mb-4">{pinErrorText}</p>
-              <input type="password" maxLength={4} autoFocus placeholder="••••" className={`w-full bg-black/50 border-2 text-white px-4 py-4 rounded-xl focus:outline-none transition-colors mb-6 text-center text-2xl tracking-[1em] shadow-inner ${pinErrorText ? 'border-red-500/50 focus:border-red-500' : 'border-gray-800 focus:border-red-500'}`} value={authPin} onChange={(e) => { setAuthPin(e.target.value); setPinErrorText(''); }} onKeyDown={(e) => e.key === 'Enter' && submitAuthPin('verify')} disabled={isConnecting} />
-              <div className="flex gap-3">
-                <button onClick={() => { setAuthStep('name'); setUsername(''); setAuthPin(''); setPinErrorText(''); }} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-colors mac-click">Cancel</button>
-                <button onClick={() => submitAuthPin('verify')} disabled={authPin.length !== 4 || isConnecting} className="flex-[2] bg-red-600 text-white font-bold py-4 rounded-xl hover:bg-red-500 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.4)] mac-click">Verify Identity</button>
+            <div className={`animate-scale-in flex flex-col items-center ${pinErrorText ? 'animate-shake' : ''}`}>
+              <div className="w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-[2rem] flex items-center justify-center mb-4 border border-white/10 shadow-2xl relative group">
+                 <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full opacity-100 transition-opacity duration-500"></div>
+                 <ShieldCheck size={36} className="text-red-500 relative z-10" />
+              </div>
+              <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500 mb-2 uppercase tracking-widest drop-shadow-lg">Verification</h1>
+              <p className="text-gray-400 text-sm mb-2 font-medium leading-relaxed">Identity <strong className="text-red-400 font-bold">{username}</strong> is locked.</p>
+              <p className="text-red-500 text-[10px] uppercase font-bold h-4 mb-4 tracking-wider">{pinErrorText}</p>
+
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className={`w-full bg-black/40 border text-white px-6 py-5 rounded-2xl focus:outline-none transition-all duration-300 mb-6 text-center text-3xl tracking-[1em] shadow-inner placeholder:text-gray-600 placeholder:tracking-normal backdrop-blur-md font-mono ${pinErrorText ? 'border-red-500/50 focus:border-red-500 focus:bg-red-500/5 focus:ring-4 focus:ring-red-500/10' : 'border-white/10 focus:border-red-500/50 focus:bg-white/5 focus:ring-4 focus:ring-red-500/10'}`} value={authPin} onChange={(e) => { setAuthPin(e.target.value); setPinErrorText(''); }} onKeyDown={(e) => e.key === 'Enter' && submitAuthPin('verify')} disabled={isConnecting} />
+
+              <div className="flex gap-3 w-full">
+                <button onClick={() => { setAuthStep('name'); setUsername(''); setAuthPin(''); setPinErrorText(''); }} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-300 font-bold py-4 rounded-2xl transition-all duration-300 hover:text-white mac-click">Abort</button>
+                <button onClick={() => submitAuthPin('verify')} disabled={authPin.length !== 4 || isConnecting} className="flex-[2] bg-gradient-to-b from-red-500 to-red-700 text-white font-black uppercase tracking-widest py-4 rounded-2xl hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:scale-100 relative overflow-hidden group">
+                   <span className="relative z-10">Authorize</span>
+                   <div className="absolute inset-0 bg-white/20 translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-700 ease-in-out"></div>
+                </button>
               </div>
             </div>
           )}
@@ -926,20 +951,34 @@ const App = () => {
         )}
 
         {adminAuthModal && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] px-4 backdrop-blur-md animate-spring">
-            <div className={`mac-glass-dark border border-[#FFD700]/30 p-8 rounded-3xl w-full max-w-sm text-center shadow-[0_20px_60px_rgba(255,215,0,0.15)]`}>
-              <Lock size={32} className="mx-auto mb-4 text-[#FFD700]" />
-              <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-widest">Admin Override</h2>
-              <p className="text-gray-400 text-sm mb-6">Enter Master Password for <strong className="text-[#FFD700]">{pendingAdminName}</strong></p>
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] px-4 backdrop-blur-xl animate-spring">
+            {/* Ambient Red Glow for Admin */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#FFD700] rounded-full blur-[150px] opacity-20 pointer-events-none"></div>
+
+            <div className={`mac-glass-dark border border-[#FFD700]/30 p-10 sm:p-12 rounded-[2.5rem] w-full max-w-md text-center shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative overflow-hidden`}>
+              {/* Top Edge Highlight Reflection */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent"></div>
+
+              <div className="w-20 h-20 bg-gradient-to-br from-white/10 to-transparent rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-[#FFD700]/20 shadow-2xl relative group">
+                 <div className="absolute inset-0 bg-[#FFD700]/20 blur-xl rounded-full opacity-100 transition-opacity duration-500"></div>
+                 <Lock size={36} className="text-[#FFD700] relative z-10" />
+              </div>
+
+              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 mb-2 uppercase tracking-widest drop-shadow-lg">Admin Override</h2>
+              <p className="text-gray-400 text-sm mb-8 font-medium">Master Protocol for <strong className="text-[#FFD700] font-bold">{pendingAdminName}</strong></p>
+
               <input type="password" autoFocus
-                className="w-full bg-black/50 text-white border-2 border-white/5 focus:border-[#FFD700] rounded-xl px-4 py-4 mb-6 text-center tracking-widest text-lg shadow-inner outline-none"
-                placeholder="Password..." value={adminPinInput}
+                className="w-full bg-black/40 text-white border border-white/10 focus:border-[#FFD700]/50 focus:bg-white/5 focus:ring-4 focus:ring-[#FFD700]/10 rounded-2xl px-6 py-5 mb-8 text-center tracking-widest text-lg shadow-inner outline-none transition-all duration-300 placeholder:text-gray-600 placeholder:tracking-normal backdrop-blur-md font-mono"
+                placeholder="Secure Password..." value={adminPinInput}
                 onChange={(e) => setAdminPinInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && executeAdminLogin()}
               />
               <div className="flex gap-3">
-                <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-all mac-click">Cancel</button>
-                <button onClick={executeAdminLogin} disabled={!adminPinInput} className="flex-1 bg-[#FFD700] text-black font-bold py-3 rounded-xl hover:opacity-80 transition-all mac-click shadow-[0_0_15px_rgba(255,215,0,0.4)]">Verify</button>
+                <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-300 hover:text-white font-bold py-4 rounded-2xl transition-all mac-click">Cancel</button>
+                <button onClick={executeAdminLogin} disabled={!adminPinInput || isConnecting} className="flex-[2] bg-gradient-to-b from-[#FFD700] to-[#e6c200] text-black font-black uppercase tracking-widest py-4 rounded-2xl hover:shadow-[0_0_30px_rgba(255,215,0,0.4)] hover:scale-[1.02] transition-all mac-click disabled:opacity-50 disabled:scale-100 relative overflow-hidden group">
+                  <span className="relative z-10">Verify</span>
+                  <div className="absolute inset-0 bg-white/20 translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-700 ease-in-out"></div>
+                </button>
               </div>
             </div>
           </div>
