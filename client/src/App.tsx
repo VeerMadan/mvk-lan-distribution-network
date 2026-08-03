@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight, Clock } from 'lucide-react';
+import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight, Clock, HardDrive } from 'lucide-react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
@@ -104,6 +104,7 @@ const App = () => {
   const isAdminSession = displayUsername === 'SYSTEM ADMIN' || displayUsername.toLowerCase() === 'veer_dev';
 
   const rooms = [
+    { name: 'The Drive', icon: <HardDrive size={18} />, locked: false },
     { name: 'General', icon: <Share2 size={16} />, locked: false },
     { name: 'Digital Team', icon: <Activity size={16} />, locked: true },
     { name: 'Sales & Mktg', icon: <Users size={16} />, locked: true },
