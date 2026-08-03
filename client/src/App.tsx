@@ -1077,8 +1077,9 @@ const App = () => {
       )}
 
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[700] px-4 backdrop-blur-md">
-          <div className={`bg-[#121212] border ${brandBorder}/30 p-8 rounded-3xl w-full max-w-sm shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-spring relative z-10`}>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[700] px-4 backdrop-blur-xl">
+          <div className={`mac-glass-dark border ${brandBorder}/30 p-10 rounded-[2.5rem] w-full max-w-sm shadow-[0_40px_100px_rgba(0,0,0,0.8)] animate-spring relative overflow-hidden z-10`}>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             <h2 className="text-white text-xl font-bold mb-4 uppercase tracking-widest flex items-center gap-2"><FolderPlus size={20} className={brandColor}/> New Folder</h2>
             <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder Name..." className={`w-full bg-[#0a0a0a] border border-gray-800 text-white px-4 py-3 rounded-xl focus:${brandBorder} outline-none mb-4`} autoFocus />
             <select value={newFolderTarget} onChange={(e) => setNewFolderTarget(e.target.value)} className={`w-full bg-[#0a0a0a] border border-gray-800 ${brandColor} px-4 py-3 rounded-xl outline-none mb-6`}>
@@ -1187,15 +1188,15 @@ const App = () => {
       </aside>
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden z-10">
-        <header className="shrink-0 h-16 border-b border-white/10 flex items-center px-4 md:px-8 mac-glass-dark z-10 justify-between">
-          <div className="flex items-center gap-4">
-            <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button>
-            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-1">
-               <span onClick={() => setCurrentFolderId(null)} className={`text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors ${!currentFolderId ? 'text-white' : `text-gray-500 hover:${brandColor}`}`}>{activeRoom}</span>
+        <header className="shrink-0 h-16 border-b border-white/5 flex items-center px-4 md:px-8 bg-black/20 backdrop-blur-3xl z-10 justify-between shadow-sm">
+          <div className="flex items-center gap-4 w-full">
+            <button className="md:hidden text-gray-400 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button>
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-1 w-full">
+               <span onClick={() => setCurrentFolderId(null)} className={`text-[13px] font-semibold tracking-wide cursor-pointer transition-all ${!currentFolderId ? 'text-white drop-shadow-md' : `text-gray-500 hover:text-white`}`}>{activeRoom}</span>
                {getBreadcrumbs().map((crumb, idx, arr) => (
                  <div key={crumb.savedAs} className="flex items-center gap-2">
                    <ChevronRight size={14} className="text-gray-600" />
-                   <span onClick={() => setCurrentFolderId(crumb.savedAs)} className={`text-sm font-bold uppercase tracking-widest cursor-pointer transition-colors max-w-[100px] sm:max-w-[150px] truncate ${idx === arr.length - 1 ? brandColor : `text-gray-500 hover:${brandColor}`}`}>{crumb.fileName}</span>
+                   <span onClick={() => setCurrentFolderId(crumb.savedAs)} className={`text-[13px] font-semibold tracking-wide cursor-pointer transition-all max-w-[100px] sm:max-w-[150px] truncate ${idx === arr.length - 1 ? 'text-white drop-shadow-md' : `text-gray-500 hover:text-white`}`}>{crumb.fileName}</span>
                  </div>
                ))}
             </div>
@@ -1235,13 +1236,12 @@ const App = () => {
 
             {(roomItems.length > 0 || currentFolderId) && (
               <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-6">
-                <div className="relative w-full sm:w-96"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} /><input type="text" placeholder={`Search this sector...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full bg-[#121212]/80 border border-white/5 text-white pl-11 pr-4 py-3 rounded-2xl focus:outline-none focus:${brandBorder}/50 transition-all duration-300 backdrop-blur-xl shadow-inner`} /></div>
-                <div className="flex bg-[#121212]/80 border border-white/5 rounded-xl p-1 w-full sm:w-auto justify-center backdrop-blur-xl">
-                  {/* BATCH SELECT ALL TOGGLE */}
-                  <button onClick={() => setSelectedFiles(selectedFiles.length === filteredItems.length ? [] : filteredItems.map(i => i.savedAs))} className={`flex items-center gap-2 mr-2 px-3 py-2 rounded-lg transition-all duration-300 ${selectedFiles.length > 0 ? `${brandBg}/20 ${brandColor} shadow-sm` : 'text-gray-500 hover:text-white'}`}><CheckSquare size={16} /> <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Select All</span></button>
-                  <div className="w-px bg-gray-800 mx-1"></div>
-                  <button onClick={() => setViewMode('list')} className={`flex-1 sm:flex-none flex justify-center p-2 rounded-lg transition-all duration-300 ${viewMode === 'list' ? `${brandBg}/20 ${brandColor} shadow-sm` : 'text-gray-500 hover:text-white'}`}><List size={20} /></button>
-                  <button onClick={() => setViewMode('grid')} className={`flex-1 sm:flex-none flex justify-center p-2 rounded-lg transition-all duration-300 ${viewMode === 'grid' ? `${brandBg}/20 ${brandColor} shadow-sm` : 'text-gray-500 hover:text-white'}`}><LayoutGrid size={20} /></button>
+                <div className="relative w-full sm:w-96"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} /><input type="text" placeholder={`Search ${activeRoom}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full mac-glass-dark text-white pl-10 pr-4 py-2.5 rounded-full focus:outline-none focus:ring-2 focus:ring-white/20 transition-all duration-300 shadow-inner placeholder:text-gray-500 text-sm`} /></div>
+                <div className="flex mac-glass-dark rounded-full p-1 w-full sm:w-auto justify-center shadow-sm border border-white/5">
+                  <button onClick={() => setSelectedFiles(selectedFiles.length === filteredItems.length && filteredItems.length > 0 ? [] : filteredItems.map(i => i.savedAs))} className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 ${selectedFiles.length > 0 ? `bg-white/20 text-white shadow-sm` : 'text-gray-400 hover:text-white'}`}><CheckSquare size={14} /> <span className="text-[13px] font-semibold hidden sm:inline">Select All</span></button>
+                  <div className="w-px bg-white/10 mx-1 my-1"></div>
+                  <button onClick={() => setViewMode('list')} className={`flex-1 sm:flex-none flex justify-center px-4 py-1.5 rounded-full transition-all duration-300 ${viewMode === 'list' ? `bg-white/20 text-white shadow-sm` : 'text-gray-400 hover:text-white'}`}><List size={16} /></button>
+                  <button onClick={() => setViewMode('grid')} className={`flex-1 sm:flex-none flex justify-center px-4 py-1.5 rounded-full transition-all duration-300 ${viewMode === 'grid' ? `bg-white/20 text-white shadow-sm` : 'text-gray-400 hover:text-white'}`}><LayoutGrid size={16} /></button>
                 </div>
               </div>
             )}
@@ -1337,21 +1337,22 @@ const App = () => {
         </section>
 
         {/* --- FLOATING BATCH ACTION BAR --- */}
-        <div className={`absolute bottom-[160px] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-30 transition-all duration-500 ${selectedFiles.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}>
-          <div className={`bg-[#121212]/95 backdrop-blur-xl border ${brandBorder}/50 p-4 rounded-2xl flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-spring`}>
+        <div className={`absolute bottom-[100px] left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-30 transition-all duration-500 ${selectedFiles.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
+          <div className={`mac-glass-dark p-3 pr-4 pl-4 rounded-full flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-spring border border-white/10`}>
             <div className="flex items-center gap-3">
-               <div className={`w-8 h-8 rounded-full ${brandBg} flex items-center justify-center text-black font-bold text-sm shadow-[0_0_15px_currentColor]`}>{selectedFiles.length}</div>
-               <span className="text-white font-bold uppercase tracking-widest text-xs hidden sm:block">Assets Selected</span>
+               <div className={`w-8 h-8 rounded-full ${godMode ? 'bg-red-600' : 'bg-white'} flex items-center justify-center ${godMode ? 'text-white' : 'text-black'} font-bold text-sm shadow-sm`}>{selectedFiles.length}</div>
+               <span className="text-gray-200 font-semibold tracking-wide text-[13px] hidden sm:block">Selected</span>
             </div>
             <div className="flex items-center gap-2">
-               <button onClick={handleBatchDownload} disabled={isBatchDownloading} className={`flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors mac-click ${isBatchDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                 {isBatchDownloading ? <Activity size={16} className="animate-spin" /> : <Download size={16} />} 
-                 <span className="hidden sm:inline">{isBatchDownloading ? 'Zipping...' : 'Download All'}</span>
+               <button onClick={handleBatchDownload} disabled={isBatchDownloading} className={`flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-[13px] font-semibold transition-colors mac-click ${isBatchDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                 {isBatchDownloading ? <Activity size={14} className="animate-spin" /> : <Download size={14} />} 
+                 <span className="hidden sm:inline">{isBatchDownloading ? 'Zipping...' : 'Download'}</span>
                </button>
-               <button onClick={promptBatchDelete} className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all mac-click">
-                 <Trash2 size={16} /> <span className="hidden sm:inline">Purge</span>
+               <button onClick={promptBatchDelete} className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white px-4 py-2 rounded-full text-[13px] font-semibold transition-all mac-click">
+                 <Trash2 size={14} /> <span className="hidden sm:inline">Delete</span>
                </button>
-               <button onClick={() => setSelectedFiles([])} className="p-2.5 text-gray-500 hover:text-white hover:bg-white/10 rounded-xl transition-colors mac-click">
+               <div className="w-px h-5 bg-white/10 mx-1"></div>
+               <button onClick={() => setSelectedFiles([])} className="p-2 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors mac-click">
                  <X size={16} />
                </button>
             </div>
@@ -1510,8 +1511,9 @@ const App = () => {
 
         {/* MULTI-DELETE CONFIRMATION MODAL */}
         {filesToDelete.length > 0 && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] px-4 backdrop-blur-md transition-all duration-500">
-            <div className="bg-[#121212]/95 border border-red-900/50 p-8 rounded-3xl w-full max-w-sm shadow-[0_20px_60px_rgba(239,68,68,0.15)] backdrop-blur-xl animate-spring">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[250] px-4 backdrop-blur-xl transition-all duration-500">
+            <div className="mac-glass-dark border border-red-500/30 p-10 rounded-[2.5rem] w-full max-w-sm shadow-[0_40px_100px_rgba(239,68,68,0.3)] animate-spring relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
               <div className="flex justify-center mb-6"><div className="w-16 h-16 rounded-full flex items-center justify-center border bg-red-500/10 border-red-500/30 shadow-inner"><Trash2 size={28} className="text-red-500" /></div></div>
               <h2 className="text-white text-xl font-bold mb-2 text-center tracking-wide">Confirm Purge</h2>
               <p className="text-center text-sm text-gray-400 mb-8 px-2">Are you sure you want to permanently erase <strong className="text-white">{filesToDelete.length} asset(s)</strong>?<br/><span className="text-red-400/80 text-xs mt-2 block">This action cannot be undone.</span></p>
@@ -1520,18 +1522,25 @@ const App = () => {
           </div>
         )}
 
-        <div className={`fixed bottom-6 right-6 z-40 flex flex-col items-end transition-all duration-500 ${isChatOpen ? 'translate-y-0' : 'translate-y-0'}`}>
-          <div className={`bg-[#121212]/95 border ${brandBorder}/20 rounded-2xl w-80 sm:w-96 mb-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 origin-bottom-right flex flex-col overflow-hidden ${isChatOpen ? 'h-[400px] opacity-100 scale-100' : 'h-0 opacity-0 scale-95 pointer-events-none'}`}>
-            <div className="h-14 bg-black/50 border-b border-white/5 flex items-center justify-between px-4 shrink-0"><div className="flex items-center gap-2"><MessageSquare size={16} className={brandColor} /><span className="text-sm font-bold text-white uppercase tracking-widest">{activeRoom} Comm-Link</span></div><button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-white transition-colors mac-click p-1"><X size={18} /></button></div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatScrollRef}>
-              {roomMessages.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-gray-500 text-xs text-center px-4 space-y-2"><Activity size={24} className="text-gray-700" /><p>Encrypted channel open. Waiting for transmissions...</p></div> : roomMessages.map((msg, idx) => {
+        <div className={`fixed bottom-[100px] md:bottom-6 right-6 z-40 flex flex-col items-end transition-all duration-500`}>
+          <div className={`mac-glass-dark rounded-3xl w-80 sm:w-96 mb-4 shadow-[0_30px_60px_rgba(0,0,0,0.7)] transition-all duration-300 origin-bottom-right flex flex-col overflow-hidden border border-white/10 ${isChatOpen ? 'h-[450px] opacity-100 scale-100' : 'h-0 opacity-0 scale-95 pointer-events-none'}`}>
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            <div className="h-16 bg-white/5 border-b border-white/5 flex items-center justify-between px-5 shrink-0 backdrop-blur-md">
+               <div className="flex items-center gap-3"><div className={`p-2 rounded-full ${godMode ? 'bg-red-500/20 text-red-500' : 'bg-white/10 text-white'}`}><MessageSquare size={16} /></div><span className="text-sm font-semibold text-white tracking-wide">{activeRoom} Comm-Link</span></div>
+               <button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-full mac-click"><X size={16} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-black/20" ref={chatScrollRef}>
+              {roomMessages.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-gray-500 text-xs text-center px-4 space-y-3"><Activity size={24} className="text-gray-600 opacity-50" /><p>Encrypted channel open.<br/>Waiting for transmissions...</p></div> : roomMessages.map((msg, idx) => {
                   const isMe = msg.sender === displayUsername; const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  return (<div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-file-drop`}><span className="text-[10px] text-gray-500 mb-1 px-1 font-medium">{isMe ? 'You' : msg.sender} • {time}</span><div className={`px-4 py-2 rounded-2xl max-w-[85%] text-sm shadow-md ${isMe ? `${brandBg} text-black rounded-tr-sm font-medium` : 'bg-white/10 text-white border border-white/5 rounded-tl-sm'}`}>{msg.text}</div></div>);
+                  return (<div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-file-drop`}><span className="text-[10px] text-gray-500 mb-1.5 px-1 font-medium">{isMe ? 'You' : msg.sender} • {time}</span><div className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-[13px] shadow-sm leading-relaxed ${isMe ? `${godMode ? 'bg-red-600' : 'bg-blue-600'} text-white rounded-br-sm font-medium` : 'bg-white/10 text-gray-200 border border-white/5 rounded-bl-sm backdrop-blur-md'}`}>{msg.text}</div></div>);
               })}
             </div>
-            <form onSubmit={handleSendMessage} className="p-3 bg-black/40 border-t border-white/5 shrink-0 flex gap-2"><input type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="Transmit message..." className={`flex-1 bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:${brandBorder}/50 transition-colors shadow-inner`} /><button type="submit" disabled={!chatMessage.trim()} className={`${brandBg} text-black p-2 rounded-xl hover:opacity-80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mac-click shadow-[0_0_10px_currentColor]`}><Send size={18} /></button></form>
+            <form onSubmit={handleSendMessage} className="p-4 bg-white/5 border-t border-white/5 shrink-0 flex gap-3 backdrop-blur-md">
+               <input type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="iMessage..." className={`flex-1 bg-black/40 border border-white/10 text-white text-sm rounded-full px-5 py-2.5 focus:outline-none focus:border-white/30 focus:bg-black/60 transition-colors shadow-inner placeholder:text-gray-500`} />
+               <button type="submit" disabled={!chatMessage.trim()} className={`${godMode ? 'bg-red-600' : 'bg-blue-600'} text-white p-2.5 rounded-full hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mac-click shadow-md flex items-center justify-center`}><Send size={16} className="-ml-0.5" /></button>
+            </form>
           </div>
-          {isNameSet && isOnline && <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] border transition-all duration-300 mac-click ${isChatOpen ? 'bg-white/10 border-white/20 text-white rotate-12' : `${brandBg} ${brandBorder}/50 text-black hover:opacity-90 hover:shadow-[0_0_20px_currentColor]`}`}>{isChatOpen ? <X size={24} /> : <MessageSquare size={24} />}</button>}
+          {isNameSet && isOnline && <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] border transition-all duration-300 mac-click backdrop-blur-xl ${isChatOpen ? 'bg-white/10 border-white/20 text-white rotate-12' : `${godMode ? 'bg-red-600 border-red-500' : 'bg-white/10 border-white/20 hover:bg-white/20'} text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]`}`}>{isChatOpen ? <X size={24} /> : <MessageSquare size={24} />}</button>}
         </div>
       </main>
     </div>
