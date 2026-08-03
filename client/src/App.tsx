@@ -269,9 +269,8 @@ const App = () => {
          return;
       }
 
-      // Backend resolved the tag for us!
       const resolvedName = res.data.resolvedName;
-      setUsername(resolvedName); // Update the input box to show the exact tag
+      setUsername(resolvedName); 
 
       if (res.data.status === 'challenge') {
         setIsConnecting(false); setAuthStep('challenge'); playError();
@@ -280,7 +279,36 @@ const App = () => {
       } else {
         playSuccess(); socket.auth = { username: resolvedName }; socket.connect();
       }
-    } catch (err) { setIsConnecting(false); }
+    } catch (err: any) { 
+      setIsConnecting(false); 
+      const errorMsg = err.response?.data?.error || "Network connection failed.";
+      setCustomAlert({title: 'Clearance Denied', msg: errorMsg});
+      playError();
+    }
+  };
+
+  const executeAdminLogin = async () => {
+    setIsConnecting(true);
+    try {
+      const res = await axios.post(`${SERVER_URL}/api/auth/pin`, {
+        username: pendingAdminName,
+        pin: adminPinInput,
+        action: 'verify'
+      });
+      if (res.data.status === 'success') {
+        setAdminAuthModal(false);
+        playSuccess();
+        socket.auth = { username: pendingAdminName };
+        socket.connect();
+      }
+    } catch (err: any) {
+      setIsConnecting(false);
+      playError();
+      setAdminAuthModal(false);
+      setCustomAlert({title: 'SYSTEM BREACH DETECTED', msg: err.response?.data?.error || 'Invalid Admin Protocol'});
+      setUsername('');
+      setAdminPinInput('');
+    }
   };
 
   const submitAuthPin = async (action: 'setup' | 'verify') => {
@@ -899,28 +927,20 @@ const App = () => {
 
         {adminAuthModal && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] px-4 backdrop-blur-md animate-spring">
-            <div className={`bg-[#121212] border border-[#FFD700]/30 p-8 rounded-3xl w-full max-w-sm shadow-[0_20px_60px_rgba(255,215,0,0.15)] text-center ${pinError ? 'animate-shake border-red-500/50' : ''}`}>
+            <div className={`mac-glass-dark border border-[#FFD700]/30 p-8 rounded-3xl w-full max-w-sm text-center shadow-[0_20px_60px_rgba(255,215,0,0.15)]`}>
               <Lock size={32} className="mx-auto mb-4 text-[#FFD700]" />
               <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-widest">Admin Override</h2>
-              <p className="text-gray-400 text-sm mb-6">Enter Master PIN to authenticate as <strong className="text-[#FFD700]">{pendingAdminName}</strong></p>
-              <input type="password" maxLength={4} autoFocus
-                className="w-full bg-black/50 text-white border-2 border-white/5 focus:border-[#FFD700] rounded-xl px-4 py-4 mb-6 text-center tracking-[1em] text-2xl shadow-inner outline-none"
-                placeholder="••••" value={adminPinInput}
-                onChange={(e) => {
-                  setAdminPinInput(e.target.value);
-                  if (e.target.value.length === 4) {
-                     if (e.target.value === ROOM_PINS['Admin Only']) {
-                        setAdminAuthModal(false);
-                        setIsConnecting(true); playSuccess(); socket.auth = { username: pendingAdminName }; socket.connect();
-                     } else {
-                        playError(); setAdminAuthModal(false);
-                        setCustomAlert({title: 'SYSTEM BREACH DETECTED', msg: `Imposter flagged. You are not ${pendingAdminName}. Incident logged.`});
-                        setUsername(''); setAdminPinInput('');
-                     }
-                  }
-                }}
+              <p className="text-gray-400 text-sm mb-6">Enter Master Password for <strong className="text-[#FFD700]">{pendingAdminName}</strong></p>
+              <input type="password" autoFocus
+                className="w-full bg-black/50 text-white border-2 border-white/5 focus:border-[#FFD700] rounded-xl px-4 py-4 mb-6 text-center tracking-widest text-lg shadow-inner outline-none"
+                placeholder="Password..." value={adminPinInput}
+                onChange={(e) => setAdminPinInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && executeAdminLogin()}
               />
-              <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-all mac-click">Cancel</button>
+              <div className="flex gap-3">
+                <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-all mac-click">Cancel</button>
+                <button onClick={executeAdminLogin} disabled={!adminPinInput} className="flex-1 bg-[#FFD700] text-black font-bold py-3 rounded-xl hover:opacity-80 transition-all mac-click shadow-[0_0_15px_rgba(255,215,0,0.4)]">Verify</button>
+              </div>
             </div>
           </div>
         )}
