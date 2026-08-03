@@ -75,7 +75,7 @@ app.post('/api/auth/pin', (req: any, res: any) => {
       const attemptHash = crypto.createHmac('sha256', pepper).update(pin).digest('hex');
 
       // Paste the string you generated in the terminal right here:
-      const MASTER_ADMIN_HASH = 'PASTE_YOUR_GENERATED_HASH_HERE';
+      const MASTER_ADMIN_HASH = 'e01fa56ac1cc8394c6f1e7d5361eaee40274438a5f5bca043f2528354dc785c5';
 
       if (attemptHash === MASTER_ADMIN_HASH) {
          return res.json({ status: 'success', isAdmin: true });
