@@ -10,7 +10,7 @@ const socket = io(SERVER_URL, { autoConnect: false, transports: ['websocket', 'p
 const ROOM_PINS: Record<string, string> = {
   'Digital Team': '1789',
   'Sales & Mktg': '2026',
-  'Admin Only': '9999'
+  'Admin Only': 'v33r_m4k'
 };
 
 const playTone = (freq: number, type: OscillatorType, duration: number, vol = 0.05) => {
@@ -846,7 +846,7 @@ const App = () => {
         `}</style>
         
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
-        <div className="bg-[#121212] p-10 rounded-2xl border border-gray-800 text-center shadow-[0_0_50px_rgba(255,215,0,0.05)] w-11/12 max-w-md relative z-10 backdrop-blur-xl animate-spring">
+        <div className="mac-glass-dark p-10 rounded-[2rem] text-center w-11/12 max-w-md relative z-10 animate-spring">
           
           {authStep === 'name' && (
             <form onSubmit={handleNameLogin}>
@@ -1084,7 +1084,7 @@ const App = () => {
 
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
 
-      <aside className={`fixed md:relative z-50 h-full w-64 bg-[#121212] border-r border-gray-800 flex flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} ${godMode ? 'border-red-900/50 bg-[#050505]' : ''}`}>
+      <aside className={`fixed md:relative z-50 h-full w-64 mac-glass-dark border-r border-white/10 flex flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} ${godMode ? 'border-red-900/50 bg-black/90' : ''}`}>
         <div className="p-6 flex flex-col shrink-0 border-b border-gray-800/50 relative z-10">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -1134,7 +1134,7 @@ const App = () => {
       </aside>
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden z-10">
-        <header className="shrink-0 h-16 border-b border-gray-800 flex items-center px-4 md:px-8 bg-[#0a0a0a]/80 backdrop-blur-xl z-10 justify-between">
+        <header className="shrink-0 h-16 border-b border-white/10 flex items-center px-4 md:px-8 mac-glass-dark z-10 justify-between">
           <div className="flex items-center gap-4">
             <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsMobileMenuOpen(true)}><Menu size={24} /></button>
             <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-1">
@@ -1203,8 +1203,8 @@ const App = () => {
                   const isSelected = selectedFiles.includes(item.savedAs);
                   
                   return (
-                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} className={`bg-[#121212]/60 border p-4 rounded-2xl flex items-center justify-between transition-all duration-300 backdrop-blur-md group relative ${deletingItemIds.includes(item.savedAs || item.fileName)
- ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `${brandBorder}/50 bg-[#1a1a1a] shadow-[0_0_15px_currentColor]` : `border-white/5 hover:bg-[#1a1a1a] hover:scale-[1.01] hover:border-white/10 ${props.shadow}`}`}>
+                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} className={`mac-glass p-4 rounded-2xl flex items-center justify-between transition-all duration-300 group relative ${deletingItemIds.includes(item.savedAs || item.fileName)
+ ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `${brandBorder}/50 bg-white/10 shadow-[0_0_20px_currentColor]` : `hover:bg-white/10 hover:scale-[1.01] hover:border-white/20 ${props.shadow}`}`}>
                       
      {/* BATCH CHECKBOX (LIST VIEW) */}
                       <div onClick={(e) => toggleFileSelection(e, item.savedAs || item.fileName)} className={`absolute left-4 top-1/2 -translate-y-1/2 p-1 rounded-md border-2 cursor-pointer transition-all duration-200 z-20 shadow-[0_0_15px_rgba(0,0,0,0.5)] ${isSelected ? `${brandBg} ${brandBorder} text-black opacity-100 scale-100` : `bg-black/90 border-gray-500 text-transparent opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:border-white`}`}>
@@ -1246,8 +1246,8 @@ const App = () => {
                   const isSelected = selectedFiles.includes(item.savedAs);
 
                   return (
-                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} onClick={() => item.isFolder && !isSelected ? setCurrentFolderId(item.savedAs) : toggleFileSelection({stopPropagation:()=>{}} as any, item.savedAs)} className={`bg-[#121212]/60 border p-6 rounded-3xl flex flex-col items-center text-center transition-all duration-300 backdrop-blur-md group relative cursor-pointer ${deletingItemIds.includes(item.savedAs || item.fileName)
- ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `${brandBorder}/50 bg-[#1a1a1a] shadow-[0_0_20px_currentColor] -translate-y-1` : `border-white/5 hover:bg-[#1a1a1a] hover:-translate-y-1 hover:border-white/10 ${props.shadow.replace('group-', '')}`}`}>
+                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} onClick={() => item.isFolder && !isSelected ? setCurrentFolderId(item.savedAs) : toggleFileSelection({stopPropagation:()=>{}} as any, item.savedAs)} className={`mac-glass p-6 rounded-3xl flex flex-col items-center text-center transition-all duration-300 group relative cursor-pointer ${deletingItemIds.includes(item.savedAs || item.fileName)
+ ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `${brandBorder}/50 bg-white/10 shadow-[0_0_30px_currentColor] -translate-y-1` : `hover:bg-white/10 hover:-translate-y-1 hover:border-white/20 ${props.shadow.replace('group-', '')}`}`}>
                       
                       {/* BATCH CHECKBOX (GRID VIEW) */}
                       <div onClick={(e) => toggleFileSelection(e, item.savedAs || item.fileName)} className={`absolute left-5 top-5 p-1 rounded-md border-2 cursor-pointer transition-all duration-200 z-20 shadow-[0_0_15px_rgba(0,0,0,0.5)] ${isSelected ? `${brandBg} ${brandBorder} text-black opacity-100 scale-100` : `bg-black/90 border-gray-500 text-transparent opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:border-white`}`}>
@@ -1317,16 +1317,16 @@ const App = () => {
           )}
 
           <div className="flex gap-2 sm:gap-4 pointer-events-auto">
-            <button onClick={() => setShowFolderModal(true)} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-1 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 transition-all duration-300 shadow-xl flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'bg-red-900/20 opacity-50' : `bg-[#121212]/80 hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:${brandColor}`}`}>
+            <button onClick={() => setShowFolderModal(true)} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-1 mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:${brandColor}`}`}>
               <FolderPlus size={20} className="shrink-0" />
               <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs text-center leading-tight hidden sm:inline">New Folder</span>
             </button>
-            <button onClick={() => storageUsed < STORAGE_LIMIT && fileInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] backdrop-blur-2xl border border-white/10 rounded-2xl p-4 transition-all duration-300 shadow-xl flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'bg-red-900/20 opacity-50' : `bg-[#121212]/80 hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
+            <button onClick={() => storageUsed < STORAGE_LIMIT && fileInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
               <FilePlus className={`${brandColor} shrink-0`} size={20} />
               <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs">Upload Files</span>
               <input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
             </button>
-            <button onClick={() => storageUsed < STORAGE_LIMIT && folderInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] backdrop-blur-2xl border border-white/10 rounded-2xl p-4 transition-all duration-300 shadow-xl flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'bg-red-900/20 opacity-50' : `bg-[#121212]/80 hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
+            <button onClick={() => storageUsed < STORAGE_LIMIT && folderInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
               <FolderUp className={`${brandColor} shrink-0`} size={20} />
               <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs">Upload Folder</span>
               {/* @ts-ignore */}

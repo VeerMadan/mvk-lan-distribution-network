@@ -106,3 +106,39 @@
   0% { transform: translateY(0); } 
   100% { transform: translateY(60px); } 
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* Apple-style Frosted Glass Panels */
+  .mac-glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+  }
+  
+  /* Deep Dark Mode Glass */
+  .mac-glass-dark {
+    @apply bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl;
+  }
+
+  /* iOS Spring Click Animation */
+  .mac-click {
+    @apply transition-all duration-200 active:scale-95 hover:brightness-110;
+  }
+
+  /* Sleek Apple Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent; 
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); 
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4); 
+  }
+}
