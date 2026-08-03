@@ -703,6 +703,56 @@ const handleSignOut = () => {
             )}
           </motion.div>
         )}
+
+        {/* SYSTEM CREDITS MODAL */}
+        {showCredits && (
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[700] px-4">
+            <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-md relative overflow-hidden">
+              <button onClick={() => setShowCredits(false)} className="absolute top-5 right-5 vault-btn p-1.5 rounded-md" style={{ color: 'var(--text-dim)' }}><X size={16} /></button>
+              <div className="flex items-center gap-5 mb-6">
+                <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold bg-white text-black shadow-md">VM</div>
+                <div>
+                  <div className="inline-flex px-2 py-0.5 rounded text-[9px] uppercase font-bold mb-1.5" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>Level 5 Clearance</div>
+                  <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>Veer Madan</h2>
+                  <p className="vault-mono text-[10px] tracking-wide" style={{ color: 'var(--text-faint)' }}>LEAD SYSTEM ARCHITECT</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surface-sunken)' }}>
+                  <h3 className="font-bold text-[11px] uppercase tracking-wider mb-1" style={{ color: 'var(--text)' }}>Architecture</h3>
+                  <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>Proprietary LAN distribution network engineered exclusively for MVK Builders and Developers Head Office.</p>
+                </div>
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--surface-sunken)' }}>
+                  <h3 className="font-bold text-[11px] uppercase tracking-wider mb-1" style={{ color: 'var(--text)' }}>Licensing</h3>
+                  <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>Licensed strictly for internal operations. Commercialization outside the organization is strictly prohibited.</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* FILE PREVIEW MODAL */}
+        {previewFile && (
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex flex-col z-[1100] px-4 py-6">
+            <header className="flex items-center justify-between shrink-0 mb-4">
+              <span className="text-white font-medium text-sm truncate drop-shadow-md">{previewFile.name}</span>
+              <div className="flex items-center gap-3">
+                <button onClick={(e) => triggerDownload(e, previewFile.url, previewFile.name)} className="vault-btn vault-btn-primary px-4 py-2 rounded-lg text-[13px] font-bold">Download</button>
+                <button onClick={() => setPreviewFile(null)} className="vault-btn p-2 rounded-full" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}><X size={18} /></button>
+              </div>
+            </header>
+            <div className="flex-1 flex items-center justify-center overflow-hidden">
+              {(previewFile.type as string) === 'video' ? (
+                <video src={previewFile.url} controls autoPlay className="max-w-full max-h-full rounded-lg shadow-2xl" />
+              ) : (previewFile.type as string) === 'image' ? (
+                <img src={previewFile.url} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+              ) : (
+                <iframe src={previewFile.url} className="w-full h-full rounded-lg bg-white shadow-2xl" title="PDF Preview" />
+              )}
+            </div>
+          </motion.div>
+        )}
+
       </AnimatePresence>
 
       {/* FLOATING COMM-LINK CHAT */}

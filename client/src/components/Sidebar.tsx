@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, HardDrive, Lock, Download, ShieldCheck, LogOut } from 'lucide-react';
 
 const getAvatarGradient = (name: string) => {
