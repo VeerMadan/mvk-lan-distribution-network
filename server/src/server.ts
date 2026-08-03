@@ -28,46 +28,41 @@ app.use(express.json());
 app.use('/api/upload', uploadRoutes);
 app.use('/preview', express.static(UPLOADS_DIR));
 
-// --- ZERO-TRUST AUTHENTICATION SYSTEM ---
+// --- ZERO-TRUST AUTHENTICATION SYSTEM (STRICT LOCKDOWN) ---
+// Add the exact names of your Digital Team here (lowercase):
+const APPROVED_TEAM = ['rahul', 'priya', 'amit', 'neha', 'karan']; 
+
 app.post('/api/auth/check', (req: any, res: any) => {
   let { username, deviceId } = req.body;
-  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
-  let attemptName = username.toLowerCase();
-  let resolvedUsername = username;
+  let attemptName = username.toLowerCase().trim();
 
-  // If they didn't type a #tag, search the database to see if they already exist
-  if (!attemptName.includes('#')) {
-    const matches = Object.keys(users).filter(k => k.split('#')[0] === attemptName);
-    if (matches.length === 1) {
-      // Exactly one match! Upgrade them to their existing tagged name
-      attemptName = matches[0];
-      resolvedUsername = users[matches[0]].displayName || matches[0];
-    } else if (matches.length > 1) {
-      // Collision! Two Rahuls exist. Force them to type their specific tag.
-      return res.json({ status: 'needs_tag' });
-    } else {
-      // Brand new user. Generate the tag.
-      const uniqueTag = Math.floor(1000 + Math.random() * 9000);
-      resolvedUsername = `${username}#${uniqueTag}`;
-      attemptName = resolvedUsername.toLowerCase();
-    }
+  // 1. Allow the Admin Override to bypass the team check
+  if (attemptName === 'veer_dev') {
+    return res.json({ status: 'challenge', resolvedName: 'System Admin' });
   }
 
-  const user = users[attemptName];
+  // 2. The Bouncer: Reject anyone not on the VIP list
+  if (!APPROVED_TEAM.includes(attemptName)) {
+    return res.status(403).json({ error: "Access Denied: You are not authorized for the MVK Vault." });
+  }
+
+  // 3. Process Approved Users
+  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
+  let user = users[attemptName];
 
   if (!user) {
-    // Save the new user to the vault
-    users[attemptName] = { devices: [deviceId], pin: null, displayName: resolvedUsername };
+    // First time setup for an approved team member
+    users[attemptName] = { devices: [deviceId], pin: null, displayName: username };
     fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
-    return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: resolvedUsername });
+    return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: username });
   }
 
   if (user.devices.includes(deviceId)) {
-    if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: resolvedUsername });
-    return res.json({ status: 'allowed', resolvedName: resolvedUsername });
+    if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: username });
+    return res.json({ status: 'allowed', resolvedName: username });
   }
 
-  return res.json({ status: 'challenge', resolvedName: resolvedUsername });
+  return res.json({ status: 'challenge', resolvedName: username });
 });
 
 app.post('/api/auth/pin', (req: any, res: any) => {
