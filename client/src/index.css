@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* ==========================================================================
-   MVK VAULT — Design tokens ("Ledger / Ops Console")
+   MVK VAULT — Premium Gold & Graphite iOS Edition
    ========================================================================== */
 
 :root {
@@ -16,10 +16,11 @@
   --text-dim: #6B7280;
   --text-faint: #9CA3AF;
 
-  --accent: #3E5FE0;
-  --accent-hover: #3450C4;
-  --accent-soft: rgba(62, 95, 224, 0.08);
-  --accent-border: rgba(62, 95, 224, 0.25);
+  /* Classic Metallic Gold */
+  --accent: #D4AF37; 
+  --accent-hover: #C5A028;
+  --accent-soft: rgba(212, 175, 55, 0.15);
+  --accent-border: rgba(212, 175, 55, 0.40);
 
   --danger: #D7373F;
   --danger-soft: rgba(215, 55, 63, 0.08);
@@ -44,10 +45,11 @@
   --text-dim: #8B929B;
   --text-faint: #565D66;
 
-  --accent: #5C82F0;
-  --accent-hover: #7396F5;
-  --accent-soft: rgba(92, 130, 240, 0.12);
-  --accent-border: rgba(92, 130, 240, 0.3);
+  /* Bright Luminous Gold for Dark Mode */
+  --accent: #FBBF24; 
+  --accent-hover: #F59E0B;
+  --accent-soft: rgba(251, 191, 36, 0.15);
+  --accent-border: rgba(251, 191, 36, 0.30);
 
   --danger: #EF5A61;
   --danger-soft: rgba(239, 90, 97, 0.12);
@@ -65,74 +67,46 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 .font-mono, .vault-mono { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace; }
 
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none; 
-    scrollbar-width: none; 
-  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+  /* iOS Frosted Glass */
   .glass-card {
     background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
   }
 
   .dark .glass-card {
-    background: rgba(24, 24, 27, 0.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(24, 24, 27, 0.65);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  }
-
-  .glass-pill {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .dark .glass-pill {
-    background: rgba(39, 39, 42, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .mac-dock { 
-    background: rgba(30, 30, 30, 0.6); 
-    backdrop-filter: blur(40px); 
-    -webkit-backdrop-filter: blur(40px); 
-    border: 1px solid rgba(255, 255, 255, 0.1); 
+    background: rgba(20, 20, 20, 0.75); 
+    backdrop-filter: saturate(180%) blur(40px); 
+    -webkit-backdrop-filter: saturate(180%) blur(40px); 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
     box-shadow: 0 15px 40px rgba(0,0,0,0.6); 
     border-radius: 9999px; 
   }
 
+  /* Deep iOS Press Animation */
   .mac-click:active { 
-    transform: scale(0.96); 
-    transition: transform 0.1s; 
+    transform: scale(0.92); 
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
   }
 }
 
-/* --- Surfaces --- */
-.vault-panel {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.vault-elevated {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-}
-.vault-sunken {
-  background-color: var(--surface-sunken);
-  border: 1px solid var(--border);
-}
-.vault-scrim {
-  background-color: rgba(6, 8, 10, 0.55);
-  backdrop-filter: blur(4px);
-}
+/* --- Surfaces & Components --- */
+.vault-panel { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(15, 18, 22, 0.06); }
+.vault-elevated { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(15, 18, 22, 0.14); }
+.vault-sunken { background-color: var(--surface-sunken); border: 1px solid var(--border); }
+.vault-scrim { background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
 /* --- Clearance rail --- */
 .rail-open   { box-shadow: inset 3px 0 0 var(--accent); }
@@ -140,121 +114,69 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
 .rail-admin  { box-shadow: inset 3px 0 0 var(--danger); }
 .rail-none   { box-shadow: inset 3px 0 0 transparent; }
 
-/* --- Interactive rows --- */
-.vault-row {
-  border-bottom: 1px solid var(--border);
-  transition: background-color 120ms ease;
-}
+/* --- Interactive Elements --- */
+.vault-row { border-bottom: 1px solid var(--border); transition: background-color 0.2s ease; }
 .vault-row:hover { background-color: var(--surface-raised); }
 .vault-row:last-child { border-bottom: none; }
-
-.vault-item {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-.vault-item:hover { background-color: var(--surface-raised); border-color: var(--border-strong); }
+.vault-item { background-color: var(--surface); border: 1px solid var(--border); transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.vault-item:hover { background-color: var(--surface-raised); border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .vault-item.is-selected { background-color: var(--accent-soft); border-color: var(--accent-border); }
-
-/* --- Nav / directory tree --- */
-.vault-nav-item {
-  color: var(--text-dim);
-  transition: background-color 120ms ease, color 120ms ease;
-}
+.vault-nav-item { color: var(--text-dim); transition: all 0.2s ease; }
 .vault-nav-item:hover { background-color: var(--surface-raised); color: var(--text); }
 .vault-nav-item.is-active { background-color: var(--accent-soft); color: var(--text); }
 
 /* --- Buttons --- */
-.vault-btn {
-  transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
-}
-.vault-btn:active { transform: scale(0.98); }
-.vault-btn-primary {
-  background-color: var(--accent);
-  color: white;
-}
-.vault-btn-primary:hover { background-color: var(--accent-hover); }
-.vault-btn-secondary {
-  background-color: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text);
-}
+.vault-btn { transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.vault-btn:active { transform: scale(0.95); }
+.vault-btn-primary { background-color: var(--accent); color: #000000; /* Black text on gold looks sharper */ }
+.vault-btn-primary:hover { background-color: var(--accent-hover); box-shadow: 0 4px 12px var(--accent-soft); }
+.vault-btn-secondary { background-color: transparent; border: 1px solid var(--border-strong); color: var(--text); }
 .vault-btn-secondary:hover { background-color: var(--surface-raised); }
-.vault-btn-danger {
-  background-color: var(--danger);
-  color: white;
-}
+.vault-btn-danger { background-color: var(--danger); color: white; }
 .vault-btn-danger:hover { filter: brightness(1.08); }
 
 /* --- Inputs --- */
-.vault-input {
-  background-color: var(--surface-sunken);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.vault-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
+.vault-input { background-color: var(--surface-sunken); border: 1px solid var(--border); color: var(--text); transition: all 0.2s ease; }
+.vault-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background-color: var(--surface); }
 .vault-input::placeholder { color: var(--text-faint); }
+.vault-dot-live { background-color: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.vault-toolbar { background-color: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(15, 18, 22, 0.08); }
 
-/* --- Badges / status --- */
-.vault-badge {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: 0.02em;
-}
-.vault-dot-live {
-  background-color: var(--success);
-  box-shadow: 0 0 0 3px var(--success-soft);
-}
-
-/* --- Toolbar --- */
-.vault-toolbar {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
-}
-
-/* --- Focus visibility (accessibility floor) --- */
-a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* --- Scrollbar --- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
-/* --- Motion --- */
+/* ==========================================================================
+   Apple iOS Spring Animations
+   ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-@keyframes rowIn {
-  0% { opacity: 0; transform: translateY(4px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes iosSpringIn { 
+  0% { opacity: 0; transform: scale(0.95) translateY(12px); } 
+  60% { opacity: 1; transform: scale(1.01) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); } 
 }
-.animate-row-in { animation: rowIn 0.22s ease-out forwards; opacity: 0; }
+.animate-row-in { animation: iosSpringIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; opacity: 0; }
 
-@keyframes purgeOut {
-  0% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.97); }
+@keyframes purgeOut { 
+  0% { opacity: 1; transform: scale(1); filter: blur(0px); } 
+  100% { opacity: 0; transform: scale(0.92); filter: blur(4px); } 
 }
-.anim-purge { animation: purgeOut 0.25s ease-in forwards; pointer-events: none; }
+.anim-purge { animation: purgeOut 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards; pointer-events: none; }
 
-@keyframes fadeUp {
-  0% { opacity: 0; transform: translateY(6px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes fadeUp { 
+  0% { opacity: 0; transform: translateY(10px); } 
+  100% { opacity: 1; transform: translateY(0); } 
 }
-.animate-fade-up { animation: fadeUp 0.2s ease-out forwards; }
+.animate-fade-up { animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-@keyframes toastSlide {
-  0% { opacity: 0; transform: translateY(-8px); }
-  8% { opacity: 1; transform: translateY(0); }
-  92% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-8px); }
+@keyframes toastSlide { 
+  0% { opacity: 0; transform: translateY(-16px) scale(0.9); } 
+  10% { opacity: 1; transform: translateY(0) scale(1); } 
+  90% { opacity: 1; transform: translateY(0) scale(1); } 
+  100% { opacity: 0; transform: translateY(-16px) scale(0.9); } 
 }
-.animate-toast { animation: toastSlide 3.2s ease-in-out forwards; }
+.animate-toast { animation: toastSlide 3.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
