@@ -6,6 +6,10 @@ import fs from 'fs';
 import { Server } from 'socket.io';
 import setupSockets from './sockets/index';
 import uploadRoutes from './routes/upload';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -68,6 +72,25 @@ app.post('/api/auth/check', (req: any, res: any) => {
 
 app.post('/api/auth/pin', (req: any, res: any) => {
   const { username, deviceId, pin, action } = req.body;
+
+  // --- VEE-RM CUSTOM ENCRYPTION PROTOCOL (ADMIN OVERRIDE) ---
+  if (username.toLowerCase() === 'veer_dev') {
+    if (action === 'verify') {
+      const pepper = process.env.SECRET_PEPPER || 'fallback_pepper';
+      const attemptHash = crypto.createHmac('sha256', pepper).update(pin).digest('hex');
+
+      // Paste the string you generated in the terminal right here:
+      const MASTER_ADMIN_HASH = 'PASTE_YOUR_GENERATED_HASH_HERE';
+
+      if (attemptHash === MASTER_ADMIN_HASH) {
+         return res.json({ status: 'success', isAdmin: true });
+      }
+      return res.status(401).json({ error: "Access Denied: Invalid Admin Protocol" });
+    }
+    return res.status(400).json({ error: "Admin profile locked." });
+  }
+  // ----------------------------------------------------------
+
   const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
   const user = users[username.toLowerCase()];
 
