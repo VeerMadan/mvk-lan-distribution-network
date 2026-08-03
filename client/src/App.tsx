@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight, Clock } from 'lucide-react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
@@ -32,6 +32,10 @@ const playClick = () => playTone(800, 'sine', 0.05, 0.02);
 const playSuccess = () => { playTone(400, 'sine', 0.1, 0.05); setTimeout(() => playTone(600, 'sine', 0.2, 0.05), 100); };
 const playError = () => { playTone(200, 'square', 0.1, 0.05); setTimeout(() => playTone(150, 'square', 0.2, 0.05), 100); };
 
+// Motion presets — small and quiet, no spring/bounce
+const fadeIn = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+const panelIn = { initial: { opacity: 0, y: 6, scale: 0.99 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: 6, scale: 0.99 }, transition: { duration: 0.16 } };
+
 const App = () => {
   // --- CORE SYSTEM STATE ---
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
@@ -42,17 +46,17 @@ const App = () => {
   const [authStep, setAuthStep] = useState<'name' | 'setup_pin' | 'challenge'>('name');
   const [authPin, setAuthPin] = useState('');
   const [pinErrorText, setPinErrorText] = useState('');
-  
+
   // --- VAULT DATA STATE ---
   const [activeRoom, setActiveRoom] = useState('General');
   const [isOnline, setIsOnline] = useState(false);
-  const [roomItems, setRoomItems] = useState<any[]>([]); 
+  const [roomItems, setRoomItems] = useState<any[]>([]);
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  
+
   // --- UI & MODAL STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -67,7 +71,7 @@ const App = () => {
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderTarget, setNewFolderTarget] = useState('Everyone');
-  
+
   // --- UPLOAD & FILE OPERATIONS ---
   const [isDragging, setIsDragging] = useState(false);
   const [stagingFiles, setStagingFiles] = useState<File[]>([]);
@@ -86,11 +90,11 @@ const App = () => {
   const [chatMessage, setChatMessage] = useState('');
   const [roomMessages, setRoomMessages] = useState<any[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  
-  const [storageUsed, setStorageUsed] = useState(0); 
-  const STORAGE_LIMIT = 100; 
+
+  const [storageUsed, setStorageUsed] = useState(0);
+  const STORAGE_LIMIT = 100;
   const [hasUpdate, setHasUpdate] = useState(false);
-  const [commitsBehind, setCommitsBehind] = useState(0); 
+  const [commitsBehind, setCommitsBehind] = useState(0);
   const [showCredits, setShowCredits] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,10 +104,10 @@ const App = () => {
   const isAdminSession = displayUsername === 'SYSTEM ADMIN' || displayUsername.toLowerCase() === 'veer_dev';
 
   const rooms = [
-    { name: 'General', icon: <Share2 size={18} />, locked: false },
-    { name: 'Digital Team', icon: <Activity size={18} />, locked: true },
-    { name: 'Sales & Mktg', icon: <Users size={18} />, locked: true },
-    { name: 'Admin Only', icon: <ShieldCheck size={18} />, locked: true },
+    { name: 'General', icon: <Share2 size={16} />, locked: false },
+    { name: 'Digital Team', icon: <Activity size={16} />, locked: true },
+    { name: 'Sales & Mktg', icon: <Users size={16} />, locked: true },
+    { name: 'Admin Only', icon: <ShieldCheck size={16} />, locked: true },
   ];
 
   // Dark Mode Engine
@@ -115,7 +119,7 @@ const App = () => {
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) playClick();
-      setContextMenu(prev => ({...prev, show: false})); 
+      setContextMenu(prev => ({...prev, show: false}));
     };
     document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
@@ -132,28 +136,28 @@ const App = () => {
     e.preventDefault();
     const finalName = username.trim();
     const attemptName = finalName.toLowerCase();
-    
+
     if (['system admin', 'veer_dev', 'admin'].includes(attemptName)) {
       setPendingAdminName(finalName); setAdminAuthModal(true); return;
     }
-    if (!finalName) return; 
+    if (!finalName) return;
 
     setIsConnecting(true); setPinErrorText('');
     try {
       const res = await axios.post(`${SERVER_URL}/api/auth/check`, { username: finalName, deviceId });
       if (res.data.status === 'needs_tag') {
-         setIsConnecting(false); 
+         setIsConnecting(false);
          setCustomAlert({title: 'Tag Required', msg: 'Multiple users share this name. Please enter your full tag (e.g. Name#1234).'});
          return;
       }
       const resolvedName = res.data.resolvedName;
-      setUsername(resolvedName); 
+      setUsername(resolvedName);
 
-      if (res.data.status === 'challenge') { setIsConnecting(false); setAuthStep('challenge'); playError(); } 
-      else if (res.data.requiresPinSetup) { setIsConnecting(false); setAuthStep('setup_pin'); playSuccess(); } 
+      if (res.data.status === 'challenge') { setIsConnecting(false); setAuthStep('challenge'); playError(); }
+      else if (res.data.requiresPinSetup) { setIsConnecting(false); setAuthStep('setup_pin'); playSuccess(); }
       else { playSuccess(); socket.auth = { username: resolvedName }; socket.connect(); }
-    } catch (err: any) { 
-      setIsConnecting(false); 
+    } catch (err: any) {
+      setIsConnecting(false);
       setCustomAlert({title: 'Clearance Denied', msg: err.response?.data?.error || "Network connection failed."});
       playError();
     }
@@ -196,7 +200,7 @@ const App = () => {
       setPinError(''); playSuccess();
       setActiveRoom(pendingRoom); setSearchQuery(''); setCurrentFolderId(null);
       setShowPinModal(false); setPinInput('');
-    } else { 
+    } else {
       const errorRoasts = [
         "Hold up, hacker man. Wrong PIN.", "Access Denied. The Beast Server rejects your offering.",
         "Error 403: Did you type that with your elbows?", "Nice try. Are you sure you work here?",
@@ -205,8 +209,8 @@ const App = () => {
         "Security alert triggered. Initiating self-destruct... 3... 2... kidding. Try again.", "Did you forget your PIN or did the PIN forget you?",
         "4 digits. FOUR. You had one job.", "I've seen monkeys solve puzzles faster. Just saying."
       ];
-      setPinError(errorRoasts[Math.floor(Math.random() * errorRoasts.length)]); 
-      setPinInput(''); playError(); 
+      setPinError(errorRoasts[Math.floor(Math.random() * errorRoasts.length)]);
+      setPinInput(''); playError();
     }
   };
 
@@ -226,15 +230,15 @@ const App = () => {
        });
        axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed));
     });
-    
+
     socket.on('force-db-sync', (freshHistory) => {
       const validRoomItems = freshHistory.filter((f: any) => f.room === activeRoom && (!f.targetRecipient || f.targetRecipient === 'Everyone' || f.targetRecipient === displayUsername || f.sender === displayUsername));
       setRoomItems(validRoomItems);
     });
 
     socket.on('storage-update', (newSize) => setStorageUsed(newSize));
-    socket.on('file-deleted', (deletedIdentifier) => { 
-      setRoomItems((prev) => prev.filter(item => item.fileName !== deletedIdentifier && item.savedAs !== deletedIdentifier)); 
+    socket.on('file-deleted', (deletedIdentifier) => {
+      setRoomItems((prev) => prev.filter(item => item.fileName !== deletedIdentifier && item.savedAs !== deletedIdentifier));
       setSelectedFiles(prev => prev.filter(id => id !== deletedIdentifier));
     });
     socket.on('chat-history', (history) => setRoomMessages(history || []));
@@ -257,7 +261,7 @@ const App = () => {
   // --- ACTIONS ---
   const triggerDownload = (e: React.MouseEvent, url: string, fileName: string) => {
     e.preventDefault(); e.stopPropagation();
-    const a = document.createElement('a'); a.href = url; a.download = fileName; a.target = '_blank'; 
+    const a = document.createElement('a'); a.href = url; a.download = fileName; a.target = '_blank';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
@@ -268,7 +272,7 @@ const App = () => {
       textArea.style.position = "fixed"; textArea.style.left = "-999999px"; document.body.appendChild(textArea); textArea.focus(); textArea.select();
       try { document.execCommand('copy'); } catch (err) {} document.body.removeChild(textArea);
     }
-    showToast('Link Copied to Clipboard!');
+    showToast('Link copied to clipboard');
   };
 
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
@@ -292,7 +296,7 @@ const App = () => {
     if (isFolderUpload) {
       const newFolderId = Math.random().toString(36).substring(7);
       socket.emit('create-folder', { id: newFolderId, folderName: autoFolderName, room: activeRoom, sender: displayUsername, parentId: currentFolderId, targetRecipient: stagedTarget });
-      targetParentId = newFolderId; 
+      targetParentId = newFolderId;
     }
 
     let successCount = 0;
@@ -312,7 +316,7 @@ const App = () => {
         setRoomItems(prev => [res.data, ...prev]); successCount++;
       } catch (error) { socket.emit('upload-complete', { room: activeRoom, id: uploadId }); playError(); }
     }
-    setUploadProgress(0); 
+    setUploadProgress(0);
     if (successCount > 0) { playSuccess(); socket.emit('trigger-global-sync'); }
   };
 
@@ -322,9 +326,9 @@ const App = () => {
     setTimeout(async () => {
       try {
         await axios.post(`${SERVER_URL}/api/files/delete`, { targets: filesToDelete, requester: displayUsername, isAdmin: isAdminSession });
-        showToast(`Purged ${filesToDelete.length} Assets.`); setFilesToDelete([]); setSelectedFiles([]); setDeletingItemIds([]);
+        showToast(`Purged ${filesToDelete.length} asset(s)`); setFilesToDelete([]); setSelectedFiles([]); setDeletingItemIds([]);
       } catch (error) { playError(); setDeletingItemIds([]); }
-    }, 600); 
+    }, 600);
   };
 
   const getBreadcrumbs = () => {
@@ -349,8 +353,8 @@ const App = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      showToast('Batch Archive Extracted Successfully');
-      setSelectedFiles([]); 
+      showToast('Batch archive exported');
+      setSelectedFiles([]);
     } catch (error) {
       playError(); showToast('Error generating archive');
     } finally {
@@ -387,8 +391,8 @@ const App = () => {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'mp4', 'webm', 'mov'].includes(fileName.split('.').pop()?.toLowerCase() || '');
   };
 
-  const promptDelete = (identifier: string) => { 
-    setFilesToDelete([identifier]); 
+  const promptDelete = (identifier: string) => {
+    setFilesToDelete([identifier]);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -409,56 +413,51 @@ const App = () => {
   // --- RENDER LOGIN PORTAL ---
   if (!isNameSet) {
     return (
-      <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 items-center justify-center font-sans relative overflow-hidden transition-colors">
-        
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-           <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[140px] opacity-20 bg-blue-500`}></div>
-           <div className={`absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-[0.15] bg-indigo-500`}></div>
-        </div>
-        
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="glass-card p-8 sm:p-10 rounded-[2.5rem] text-center w-11/12 max-w-sm relative z-10 shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50">
+      <div className="flex h-screen items-center justify-center font-sans relative overflow-hidden transition-colors" style={{ backgroundColor: 'var(--bg)' }}>
+
+        <motion.div {...panelIn} className="vault-elevated p-8 sm:p-10 rounded-2xl text-center w-11/12 max-w-sm relative z-10">
           {authStep === 'name' && (
             <form onSubmit={handleNameLogin} className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 shadow-inner">
-                <ShieldCheck size={28} className="text-blue-500" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6" style={{ backgroundColor: 'var(--accent)' }}>
+                <ShieldCheck size={22} className="text-white" />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1">MVK Vault</h1>
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium mb-8">Sign in to access the network</p>
+              <h1 className="text-xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>MVK Vault</h1>
+              <p className="vault-mono text-[11px] tracking-wide mb-8" style={{ color: 'var(--text-faint)' }}>AUTHENTICATE TO ACCESS NETWORK</p>
 
-              <input type="text" autoFocus placeholder="Identity Tag" className="w-full bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all mb-4 text-center font-semibold placeholder:text-zinc-400" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
-              <button type="submit" disabled={isConnecting || !username.trim()} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 disabled:opacity-50 mt-2 flex justify-center items-center gap-2">
-                {isConnecting ? <Activity size={18} className="animate-spin" /> : 'Continue'}
+              <input type="text" autoFocus placeholder="Identity tag" className="vault-input w-full px-4 py-3 rounded-lg mb-3 text-center font-semibold text-[14px]" value={username} onChange={(e) => setUsername(e.target.value)} disabled={isConnecting} />
+              <button type="submit" disabled={isConnecting || !username.trim()} className="vault-btn vault-btn-primary w-full font-bold py-3 rounded-lg disabled:opacity-40 mt-2 flex justify-center items-center gap-2 text-[14px]">
+                {isConnecting ? <Activity size={16} className="animate-spin" /> : 'Continue'}
               </button>
             </form>
           )}
 
           {authStep === 'setup_pin' && (
             <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 shadow-inner">
-                 <Lock size={28} className="text-blue-500" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6" style={{ backgroundColor: 'var(--accent)' }}>
+                 <Lock size={20} className="text-white" />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1">Create PIN</h1>
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 font-medium">Secure your device session.</p>
+              <h1 className="text-xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>Create PIN</h1>
+              <p className="text-[13px] mb-8 font-medium" style={{ color: 'var(--text-dim)' }}>Secure your device session.</p>
 
-              <input type="password" maxLength={4} autoFocus placeholder="••••" className="w-full bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all mb-6 text-center text-2xl tracking-[0.5em] font-mono" value={authPin} onChange={(e) => { const val = e.target.value; setAuthPin(val); if (val.length === 4) submitAuthPin('setup'); }} disabled={isConnecting} />
-              <button onClick={() => submitAuthPin('setup')} disabled={authPin.length !== 4 || isConnecting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50">Save PIN</button>
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className="vault-input w-full px-4 py-3 rounded-lg mb-6 text-center text-2xl tracking-[0.5em] font-mono" value={authPin} onChange={(e) => { const val = e.target.value; setAuthPin(val); if (val.length === 4) submitAuthPin('setup'); }} disabled={isConnecting} />
+              <button onClick={() => submitAuthPin('setup')} disabled={authPin.length !== 4 || isConnecting} className="vault-btn vault-btn-primary w-full font-bold py-3 rounded-lg disabled:opacity-40 text-[14px]">Save PIN</button>
             </div>
           )}
 
           {authStep === 'challenge' && (
             <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20 shadow-inner">
-                 <Lock size={28} className="text-red-500" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6" style={{ backgroundColor: 'var(--danger)' }}>
+                 <Lock size={20} className="text-white" />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1">Enter PIN</h1>
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium mb-4">Unlock <span className="text-zinc-800 dark:text-zinc-200">{username}</span></p>
-              <p className="text-red-500 text-xs font-semibold h-4 mb-4">{pinErrorText}</p>
+              <h1 className="text-xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>Enter PIN</h1>
+              <p className="text-[13px] font-medium mb-4" style={{ color: 'var(--text-dim)' }}>Unlock <span style={{ color: 'var(--text)' }}>{username}</span></p>
+              <p className="text-[11px] font-semibold h-4 mb-4" style={{ color: 'var(--danger)' }}>{pinErrorText}</p>
 
-              <input type="password" maxLength={4} autoFocus placeholder="••••" className={`w-full bg-zinc-100/80 dark:bg-zinc-800/80 border text-zinc-900 dark:text-zinc-100 px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all mb-6 text-center text-2xl tracking-[0.5em] font-mono ${pinErrorText ? 'border-red-500/50' : 'border-zinc-200 dark:border-zinc-700'}`} value={authPin} onChange={(e) => { setAuthPin(e.target.value); setPinErrorText(''); }} onKeyDown={(e) => e.key === 'Enter' && submitAuthPin('verify')} disabled={isConnecting} />
-              
+              <input type="password" maxLength={4} autoFocus placeholder="••••" className="vault-input w-full px-4 py-3 rounded-lg mb-6 text-center text-2xl tracking-[0.5em] font-mono" style={pinErrorText ? { borderColor: 'var(--danger)' } : undefined} value={authPin} onChange={(e) => { setAuthPin(e.target.value); setPinErrorText(''); }} onKeyDown={(e) => e.key === 'Enter' && submitAuthPin('verify')} disabled={isConnecting} />
+
               <div className="flex gap-3 w-full">
-                <button onClick={() => { setAuthStep('name'); setUsername(''); setAuthPin(''); setPinErrorText(''); }} className="flex-1 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold py-3.5 rounded-xl transition-all active:scale-95">Cancel</button>
-                <button onClick={() => submitAuthPin('verify')} disabled={authPin.length !== 4 || isConnecting} className="flex-1 bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50">Unlock</button>
+                <button onClick={() => { setAuthStep('name'); setUsername(''); setAuthPin(''); setPinErrorText(''); }} className="vault-btn vault-btn-secondary flex-1 font-bold py-3 rounded-lg text-[14px]">Cancel</button>
+                <button onClick={() => submitAuthPin('verify')} disabled={authPin.length !== 4 || isConnecting} className="vault-btn vault-btn-primary flex-1 font-bold py-3 rounded-lg disabled:opacity-40 text-[14px]">Unlock</button>
               </div>
             </div>
           )}
@@ -467,12 +466,12 @@ const App = () => {
         {/* Custom Alerts */}
         <AnimatePresence>
           {customAlert && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] px-4 backdrop-blur-md">
-              <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card p-8 rounded-[2rem] w-full max-w-sm text-center shadow-2xl border border-red-500/30">
-                <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/30"><ShieldCheck size={28} className="text-red-500" /></div>
-                <h2 className="text-zinc-900 dark:text-white text-xl font-bold mb-2">{customAlert.title}</h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6 font-medium">{customAlert.msg}</p>
-                <button onClick={() => setCustomAlert(null)} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95">Acknowledge</button>
+            <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[9999] px-4">
+              <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm text-center" style={{ borderColor: 'var(--danger)' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--danger-soft)' }}><ShieldCheck size={22} style={{ color: 'var(--danger)' }} /></div>
+                <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>{customAlert.title}</h2>
+                <p className="text-[13px] mb-6 font-medium" style={{ color: 'var(--text-dim)' }}>{customAlert.msg}</p>
+                <button onClick={() => setCustomAlert(null)} className="vault-btn vault-btn-danger w-full font-bold py-3 rounded-lg text-[14px]">Acknowledge</button>
               </motion.div>
             </motion.div>
           )}
@@ -481,16 +480,16 @@ const App = () => {
         {/* Admin Override Modal */}
         <AnimatePresence>
           {adminAuthModal && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] px-4 backdrop-blur-md">
-              <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card p-8 rounded-[2rem] w-full max-w-sm text-center shadow-2xl border border-blue-500/30">
-                <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/30"><Lock size={28} className="text-blue-500" /></div>
-                <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1">System Override</h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 font-medium">Authenticate as Admin</p>
+            <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[9999] px-4">
+              <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm text-center">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--accent-soft)' }}><Lock size={20} style={{ color: 'var(--accent)' }} /></div>
+                <h2 className="text-lg font-bold tracking-tight mb-1" style={{ color: 'var(--text)' }}>System Override</h2>
+                <p className="text-[13px] mb-8 font-medium" style={{ color: 'var(--text-dim)' }}>Authenticate as Admin</p>
 
-                <input type="password" autoFocus className="w-full bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3.5 mb-6 text-center text-sm outline-none placeholder-zinc-400 font-mono focus:ring-2 focus:ring-blue-500/50" placeholder="Master Password" value={adminPinInput} onChange={(e) => setAdminPinInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && executeAdminLogin()} />
+                <input type="password" autoFocus className="vault-input w-full px-4 py-3 rounded-lg mb-6 text-center text-sm font-mono" placeholder="Master password" value={adminPinInput} onChange={(e) => setAdminPinInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && executeAdminLogin()} />
                 <div className="flex gap-3 w-full">
-                  <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="flex-1 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold py-3.5 rounded-xl transition-all active:scale-95">Cancel</button>
-                  <button onClick={executeAdminLogin} disabled={!adminPinInput || isConnecting} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 transition-all active:scale-95">Verify</button>
+                  <button onClick={() => {setAdminAuthModal(false); setUsername(''); setAdminPinInput('');}} className="vault-btn vault-btn-secondary flex-1 font-bold py-3 rounded-lg text-[14px]">Cancel</button>
+                  <button onClick={executeAdminLogin} disabled={!adminPinInput || isConnecting} className="vault-btn vault-btn-primary flex-1 font-bold py-3 rounded-lg disabled:opacity-40 text-[14px]">Verify</button>
                 </div>
               </motion.div>
             </motion.div>
@@ -502,24 +501,23 @@ const App = () => {
 
   // --- RENDER MAIN APPLICATION ---
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors antialiased overflow-hidden selection:bg-blue-500 selection:text-white" onDrop={(e) => storageUsed < STORAGE_LIMIT && (e.preventDefault(), setIsDragging(false), e.dataTransfer.files.length > 0 && setStagingFiles(Array.from(e.dataTransfer.files)))} onDragOver={(e) => (e.preventDefault(), setIsDragging(true))} onDragLeave={(e) => (!e.currentTarget.contains(e.relatedTarget as Node) && setIsDragging(false))}>
-      
-      {/* Ambient iOS Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[140px] opacity-20 bg-blue-500"></div>
-         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] opacity-[0.10] bg-indigo-500"></div>
-      </div>
-
+    <div
+      className="flex h-screen font-sans transition-colors antialiased overflow-hidden"
+      style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
+      onDrop={(e) => storageUsed < STORAGE_LIMIT && (e.preventDefault(), setIsDragging(false), e.dataTransfer.files.length > 0 && setStagingFiles(Array.from(e.dataTransfer.files)))}
+      onDragOver={(e) => (e.preventDefault(), setIsDragging(true))}
+      onDragLeave={(e) => (!e.currentTarget.contains(e.relatedTarget as Node) && setIsDragging(false))}
+    >
       <AnimatePresence>
         {toastMsg && (
-          <motion.div initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }} className="fixed top-6 right-6 z-[9999] bg-zinc-900/90 dark:bg-zinc-100/90 text-white dark:text-zinc-900 px-5 py-3.5 rounded-2xl shadow-2xl border border-zinc-700 dark:border-zinc-300 backdrop-blur-xl flex items-center space-x-3 text-xs font-bold">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="fixed top-5 right-5 z-[9999] vault-elevated px-4 py-3 rounded-lg flex items-center space-x-3 text-[12.5px] font-semibold" style={{ color: 'var(--text)' }}>
+            <div className="w-2 h-2 rounded-full vault-dot-live" />
             <span>{toastMsg}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <Sidebar 
+      <Sidebar
         isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen}
         activeRoom={activeRoom} attemptRoomJoin={attemptRoomJoin} rooms={rooms}
         storageUsed={storageUsed} STORAGE_LIMIT={STORAGE_LIMIT}
@@ -528,29 +526,27 @@ const App = () => {
       />
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden z-10">
-        
-        {/* iOS Style Floating Header */}
-        <header className="shrink-0 mt-4 mx-4 md:mx-8 z-20">
-          <div className="glass-pill border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl px-5 py-3.5 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-4 w-full">
-              <button className="md:hidden text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(true)}><Menu size={20} /></button>
-              <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-1 w-full">
-                 <span onClick={() => setCurrentFolderId(null)} className={`text-[13px] font-bold cursor-pointer transition-all ${!currentFolderId ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}`}>{activeRoom}</span>
-                 {getBreadcrumbs().map((crumb, idx, arr) => (
-                   <div key={crumb.savedAs} className="flex items-center gap-2">
-                     <ChevronRight size={14} className="text-zinc-400" />
-                     <span onClick={() => setCurrentFolderId(crumb.savedAs)} className={`text-[13px] font-bold cursor-pointer transition-all max-w-[100px] sm:max-w-[150px] truncate ${idx === arr.length - 1 ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}`}>{crumb.fileName}</span>
-                   </div>
-                 ))}
-              </div>
+
+        {/* Header */}
+        <header className="shrink-0 h-14 flex items-center px-4 md:px-8 z-20" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
+          <div className="flex items-center gap-4 w-full">
+            <button className="md:hidden" style={{ color: 'var(--text-dim)' }} onClick={() => setIsMobileMenuOpen(true)}><Menu size={19} /></button>
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar py-1 w-full">
+               <span onClick={() => setCurrentFolderId(null)} className="text-[13px] font-bold cursor-pointer transition-colors" style={{ color: !currentFolderId ? 'var(--text)' : 'var(--text-faint)' }}>{activeRoom}</span>
+               {getBreadcrumbs().map((crumb, idx, arr) => (
+                 <div key={crumb.savedAs} className="flex items-center gap-2">
+                   <ChevronRight size={13} style={{ color: 'var(--text-faint)' }} />
+                   <span onClick={() => setCurrentFolderId(crumb.savedAs)} className="text-[13px] font-bold cursor-pointer transition-colors max-w-[100px] sm:max-w-[150px] truncate" style={{ color: idx === arr.length - 1 ? 'var(--text)' : 'var(--text-faint)' }}>{crumb.fileName}</span>
+                 </div>
+               ))}
             </div>
-            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-xl bg-zinc-200/50 dark:bg-zinc-800/50 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-all ml-4">
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
           </div>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className="vault-btn p-2 rounded-md shrink-0" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}>
+            {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
         </header>
 
-        <Dashboard 
+        <Dashboard
           activeRoom={activeRoom} activeUsers={activeUsers} displayUsername={displayUsername} isAdminSession={isAdminSession}
           roomItems={roomItems} currentFolderId={currentFolderId} setCurrentFolderId={setCurrentFolderId}
           searchQuery={searchQuery} setSearchQuery={setSearchQuery} viewMode={viewMode} setViewMode={setViewMode}
@@ -567,141 +563,158 @@ const App = () => {
 
       <AnimatePresence>
         {isDragging && storageUsed < STORAGE_LIMIT && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[500] bg-blue-500/10 border-2 border-blue-500/50 rounded-2xl flex items-center justify-center backdrop-blur-sm pointer-events-none">
-             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="glass-card px-10 py-8 rounded-[2rem] text-center shadow-2xl flex flex-col items-center">
-               <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-4"><Download className="text-blue-500 w-8 h-8 animate-bounce" /></div>
-               <h2 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-1">Drop Files Here</h2>
-               <p className="text-zinc-500 dark:text-zinc-400 font-medium text-sm">Release to stage uploads</p>
+          <motion.div {...fadeIn} className="fixed inset-0 z-[500] flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'var(--accent-soft)', border: `2px dashed var(--accent)` }}>
+             <motion.div {...panelIn} className="vault-elevated px-10 py-8 rounded-2xl text-center flex flex-col items-center">
+               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--accent-soft)' }}><Download style={{ color: 'var(--accent)' }} className="w-6 h-6 animate-bounce" /></div>
+               <h2 className="text-lg font-extrabold tracking-tight mb-1" style={{ color: 'var(--text)' }}>Drop files here</h2>
+               <p className="font-medium text-[13px]" style={{ color: 'var(--text-dim)' }}>Release to stage uploads</p>
              </motion.div>
           </motion.div>
         )}
 
         {showPinModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] px-4 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card p-8 rounded-[2rem] w-full max-w-sm shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="flex justify-center mb-4"><div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"><Lock size={28} className="text-zinc-700 dark:text-zinc-300" /></div></div>
-              <h2 className="text-zinc-900 dark:text-white text-xl font-bold mb-1 text-center">Restricted Area</h2>
-              <p className="text-center text-sm font-medium h-12 flex items-center justify-center px-2">{pinError ? <span className="text-red-500">{pinError}</span> : <span className="text-zinc-500 dark:text-zinc-400">Enter PIN for {pendingRoom}</span>}</p>
-              <input type="password" maxLength={4} value={pinInput} onChange={(e) => { const val = e.target.value; setPinInput(val); if (pinError) setPinError(''); if (val.length === 4) submitPin(val); }} onKeyDown={(e) => e.key === 'Enter' && submitPin()} className={`w-full bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-900 dark:text-white border ${pinError ? 'border-red-500/50' : 'border-zinc-200 dark:border-zinc-700'} rounded-xl px-4 py-3.5 mt-2 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-center tracking-[0.5em] text-2xl shadow-inner font-mono`} placeholder="••••" autoFocus />
-              <div className="flex gap-3"><button onClick={() => { setShowPinModal(false); setPinInput(''); setPinError(''); }} className="flex-1 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 py-3.5 rounded-xl font-bold transition-colors active:scale-95">Cancel</button><button onClick={() => submitPin()} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-all active:scale-95">Authorize</button></div>
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[100] px-4">
+            <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm">
+              <div className="flex justify-center mb-4"><div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--warning-soft)' }}><Lock size={20} style={{ color: 'var(--warning)' }} /></div></div>
+              <h2 className="text-lg font-bold mb-1 text-center" style={{ color: 'var(--text)' }}>Restricted area</h2>
+              <p className="text-center text-[13px] font-medium h-12 flex items-center justify-center px-2">{pinError ? <span style={{ color: 'var(--danger)' }}>{pinError}</span> : <span style={{ color: 'var(--text-dim)' }}>Enter PIN for {pendingRoom}</span>}</p>
+              <input type="password" maxLength={4} value={pinInput} onChange={(e) => { const val = e.target.value; setPinInput(val); if (pinError) setPinError(''); if (val.length === 4) submitPin(val); }} onKeyDown={(e) => e.key === 'Enter' && submitPin()} className="vault-input w-full px-4 py-3 mt-2 mb-6 rounded-lg text-center tracking-[0.5em] text-2xl font-mono" style={pinError ? { borderColor: 'var(--danger)' } : undefined} placeholder="••••" autoFocus />
+              <div className="flex gap-3">
+                <button onClick={() => { setShowPinModal(false); setPinInput(''); setPinError(''); }} className="vault-btn vault-btn-secondary flex-1 py-3 rounded-lg font-bold text-[14px]">Cancel</button>
+                <button onClick={() => submitPin()} className="vault-btn vault-btn-primary flex-1 py-3 rounded-lg font-bold text-[14px]">Authorize</button>
+              </div>
             </motion.div>
           </motion.div>
         )}
 
         {showFolderModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[700] px-4 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card p-8 rounded-[2rem] w-full max-w-sm shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="flex items-center gap-3 mb-6"><div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl"><FolderPlus size={20} className="text-blue-500"/></div><h2 className="text-zinc-900 dark:text-white text-xl font-extrabold tracking-tight">New Folder</h2></div>
-              <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder Name..." className="w-full bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white px-4 py-3.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all mb-4 text-sm font-semibold placeholder:text-zinc-400" autoFocus />
-              <select value={newFolderTarget} onChange={(e) => setNewFolderTarget(e.target.value)} className="w-full bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white px-4 py-3.5 rounded-xl outline-none mb-8 text-sm font-semibold appearance-none">
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[700] px-4">
+            <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm">
+              <div className="flex items-center gap-3 mb-6"><div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--accent-soft)' }}><FolderPlus size={18} style={{ color: 'var(--accent)' }}/></div><h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>New folder</h2></div>
+              <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder name…" className="vault-input w-full px-4 py-3 rounded-lg mb-4 text-[13.5px] font-semibold" autoFocus />
+              <select value={newFolderTarget} onChange={(e) => setNewFolderTarget(e.target.value)} className="vault-input w-full px-4 py-3 rounded-lg mb-8 text-[13.5px] font-semibold appearance-none">
                 <option value="Everyone">Visible to: Everyone</option>
                 {activeUsers.filter(u => u.username !== displayUsername).map(u => <option key={u.id} value={u.username}>Private to: {u.username}</option>)}
               </select>
               <div className="flex gap-3">
-                <button onClick={() => setShowFolderModal(false)} className="flex-1 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 py-3.5 rounded-xl font-bold transition-colors active:scale-95">Cancel</button>
-                <button onClick={handleCreateFolder} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95">Create</button>
+                <button onClick={() => setShowFolderModal(false)} className="vault-btn vault-btn-secondary flex-1 py-3 rounded-lg font-bold text-[14px]">Cancel</button>
+                <button onClick={handleCreateFolder} className="vault-btn vault-btn-primary flex-1 py-3 rounded-lg font-bold text-[14px]">Create</button>
               </div>
             </motion.div>
           </motion.div>
         )}
 
         {stagingFiles.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[600] bg-black/60 flex items-center justify-center backdrop-blur-md p-4">
-            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card rounded-[2rem] w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="bg-zinc-100/50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 p-6 flex justify-between items-center shrink-0">
+          <motion.div {...fadeIn} className="absolute inset-0 z-[600] vault-scrim flex items-center justify-center p-4">
+            <motion.div {...panelIn} className="vault-elevated rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
+              <div className="p-6 flex justify-between items-center shrink-0" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
                 <div className="flex items-center gap-4">
-                  <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-sm"><Activity size={20} /></div>
+                  <div className="p-2.5 rounded-lg" style={{ backgroundColor: 'var(--accent)' }}><Activity size={18} className="text-white" /></div>
                   <div>
-                    <h2 className="text-zinc-900 dark:text-white text-lg font-bold tracking-tight leading-tight">Stage Upload</h2>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-xs font-semibold">{stagingFiles.length > 0 && !!stagingFiles[0].webkitRelativePath ? `Directory: ${stagingFiles[0].webkitRelativePath.split('/')[0]}` : `${stagingFiles.length} file(s) ready`}</p>
+                    <h2 className="text-[15px] font-bold tracking-tight leading-tight" style={{ color: 'var(--text)' }}>Stage upload</h2>
+                    <p className="vault-mono text-[11px]" style={{ color: 'var(--text-faint)' }}>{stagingFiles.length > 0 && !!stagingFiles[0].webkitRelativePath ? `DIR: ${stagingFiles[0].webkitRelativePath.split('/')[0]}` : `${stagingFiles.length} FILE(S) READY`}</p>
                   </div>
                 </div>
-                <button onClick={() => setStagingFiles([])} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 p-2 rounded-full transition-colors active:scale-95"><X size={20} /></button>
+                <button onClick={() => setStagingFiles([])} className="vault-btn p-2 rounded-md" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}><X size={18} /></button>
               </div>
 
-              <div className="p-6 flex-1 overflow-y-auto space-y-8 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <div className="p-6 flex-1 overflow-y-auto space-y-7" style={{ backgroundColor: 'var(--surface)' }}>
                 <div>
-                  <h3 className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider mb-3 flex items-center gap-2">1. Secure Target</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <button onClick={() => setStagedTarget('Everyone')} className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border active:scale-95 ${stagedTarget === 'Everyone' ? 'bg-blue-600 text-white border-transparent shadow-md' : 'bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700'}`}><Share2 size={20} /><span className="font-bold text-xs">Everyone</span></button>
+                  <h3 className="vault-mono text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>1 — Secure target</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <button onClick={() => setStagedTarget('Everyone')} className="vault-btn p-3.5 rounded-lg flex flex-col items-center justify-center gap-1.5 border" style={stagedTarget === 'Everyone' ? { backgroundColor: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)', borderColor: 'var(--border)' }}><Share2 size={18} /><span className="font-bold text-[11px]">Everyone</span></button>
                     {activeUsers.filter(u => u.username !== displayUsername).map(u => (
-                      <button key={u.id} onClick={() => setStagedTarget(u.username)} className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border active:scale-95 ${stagedTarget === u.username ? 'bg-blue-600 text-white border-transparent shadow-md' : 'bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700'}`}><Lock size={20} /><span className="font-bold text-xs truncate w-full text-center">{u.username}</span></button>
+                      <button key={u.id} onClick={() => setStagedTarget(u.username)} className="vault-btn p-3.5 rounded-lg flex flex-col items-center justify-center gap-1.5 border" style={stagedTarget === u.username ? { backgroundColor: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)', borderColor: 'var(--border)' }}><Lock size={18} /><span className="font-bold text-[11px] truncate w-full text-center">{u.username}</span></button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider mb-3 flex items-center gap-2">2. Expiration Timer</h3>
-                  <div className="grid grid-cols-4 gap-3">
+                  <h3 className="vault-mono text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>2 — Expiration timer</h3>
+                  <div className="grid grid-cols-4 gap-2.5">
                     {[1, 12, 24, 168].map(hours => (
-                      <button key={hours} onClick={() => setStagedExpiry(hours)} className={`py-4 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all border active:scale-95 ${stagedExpiry === hours ? 'bg-blue-600 text-white border-transparent shadow-md' : 'bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700'}`}><span className="font-bold text-xs">{hours === 168 ? '7 Days' : `${hours}h`}</span></button>
+                      <button key={hours} onClick={() => setStagedExpiry(hours)} className="vault-btn py-3.5 px-2 rounded-lg flex flex-col items-center justify-center gap-1 border" style={stagedExpiry === hours ? { backgroundColor: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)', borderColor: 'var(--border)' }}><span className="font-bold text-[11px]">{hours === 168 ? '7 days' : `${hours}h`}</span></button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 bg-zinc-100/50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex gap-4">
-                 <button onClick={() => setStagingFiles([])} className="flex-1 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-4 rounded-2xl transition-colors active:scale-95">Cancel</button>
-                 <button onClick={executeStagedUploads} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"><Send size={18} /> Upload Now</button>
+              <div className="p-6 shrink-0 flex gap-3" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
+                 <button onClick={() => setStagingFiles([])} className="vault-btn vault-btn-secondary flex-1 font-bold py-3.5 rounded-lg text-[14px]">Cancel</button>
+                 <button onClick={executeStagedUploads} className="vault-btn vault-btn-primary flex-[2] font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 text-[14px]"><Send size={17} /> Upload now</button>
               </div>
             </motion.div>
           </motion.div>
         )}
 
         {filesToDelete.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-[250] px-4 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} className="glass-card p-8 rounded-[2rem] w-full max-w-sm shadow-2xl border border-red-500/20">
-              <div className="flex justify-center mb-6"><div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-red-500/10 border border-red-500/20"><Trash2 size={28} className="text-red-500" /></div></div>
-              <h2 className="text-zinc-900 dark:text-white text-xl font-bold mb-2 text-center">Confirm Deletion</h2>
-              <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mb-8 font-medium">Erase <strong className="text-zinc-900 dark:text-white">{filesToDelete.length} item(s)</strong> permanently?</p>
-              <div className="flex gap-3"><button onClick={() => setFilesToDelete([])} className="flex-1 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 py-3.5 rounded-xl font-bold transition-colors active:scale-95">Cancel</button><button onClick={confirmBatchDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3.5 rounded-xl font-bold transition-all active:scale-95">Delete</button></div>
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[250] px-4">
+            <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm" style={{ borderColor: 'var(--danger)' }}>
+              <div className="flex justify-center mb-6"><div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--danger-soft)' }}><Trash2 size={24} style={{ color: 'var(--danger)' }} /></div></div>
+              <h2 className="text-lg font-bold mb-2 text-center" style={{ color: 'var(--text)' }}>Confirm deletion</h2>
+              <p className="text-center text-[13px] mb-8 font-medium" style={{ color: 'var(--text-dim)' }}>Erase <strong style={{ color: 'var(--text)' }}>{filesToDelete.length} item(s)</strong> permanently?</p>
+              <div className="flex gap-3">
+                <button onClick={() => setFilesToDelete([])} className="vault-btn vault-btn-secondary flex-1 py-3 rounded-lg font-bold text-[14px]">Cancel</button>
+                <button onClick={confirmBatchDelete} className="vault-btn vault-btn-danger flex-1 py-3 rounded-lg font-bold text-[14px]">Delete</button>
+              </div>
             </motion.div>
           </motion.div>
         )}
-        
+
         {/* RIGHT CLICK CONTEXT MENU */}
         {contextMenu.show && contextMenu.file && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="fixed z-[1000] w-56 glass-card border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-2xl overflow-hidden py-2" style={{ top: Math.min(contextMenu.y, window.innerHeight - 200), left: Math.min(contextMenu.x, window.innerWidth - 250) }}>
-            <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 mb-2"><p className="text-xs font-bold text-zinc-900 dark:text-white truncate w-full">{contextMenu.file.fileName}</p></div>
+          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.12 }} className="fixed z-[1000] w-56 vault-elevated rounded-xl overflow-hidden py-1.5" style={{ top: Math.min(contextMenu.y, window.innerHeight - 200), left: Math.min(contextMenu.x, window.innerWidth - 250) }}>
+            <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid var(--border)' }}><p className="text-[11px] font-bold truncate w-full" style={{ color: 'var(--text)' }}>{contextMenu.file.fileName}</p></div>
             {contextMenu.file.isFolder ? (
-              <button onClick={() => setCurrentFolderId(contextMenu.file.savedAs)} className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-3 transition-colors"><FolderPlus size={16} /> Open Folder</button>
+              <button onClick={() => setCurrentFolderId(contextMenu.file.savedAs)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><FolderPlus size={15} /> Open folder</button>
             ) : (
               <>
-                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`, contextMenu.file.fileName)} className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-3 transition-colors"><Download size={16} /> Download</button>
-                <button onClick={() => handleCopyLink(`${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-3 transition-colors"><Share2 size={16} /> Copy Link</button>
+                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`, contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
+                <button onClick={() => handleCopyLink(`${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Share2 size={15} /> Copy link</button>
               </>
             )}
             {(contextMenu.file.sender === displayUsername || isAdminSession) && (
               <>
-                <div className="my-1 border-t border-zinc-200 dark:border-zinc-800"></div>
-                <button onClick={() => { socket.emit('extend-expiry', { identifier: contextMenu.file.savedAs || contextMenu.file.fileName, isFolder: contextMenu.file.isFolder, addedHours: 24 }); showToast('Extended 24h'); setContextMenu({ show: false, x: 0, y: 0, file: null }); }} className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-green-500/10 hover:text-green-500 flex items-center gap-3 transition-colors">
-                  <Clock size={16} /> Extend 24h
+                <div className="my-1" style={{ borderTop: '1px solid var(--border)' }}></div>
+                <button onClick={() => { socket.emit('extend-expiry', { identifier: contextMenu.file.savedAs || contextMenu.file.fileName, isFolder: contextMenu.file.isFolder, addedHours: 24 }); showToast('Extended 24h'); setContextMenu({ show: false, x: 0, y: 0, file: null }); }} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3" style={{ color: 'var(--success)' }}>
+                  <Clock size={15} /> Extend 24h
                 </button>
-                <button onClick={() => promptDelete(contextMenu.file.savedAs || contextMenu.file.fileName)} className="w-full text-left px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-red-500/10 hover:text-red-500 flex items-center gap-3 transition-colors"><Trash2 size={16} /> Delete</button>
+                <button onClick={() => promptDelete(contextMenu.file.savedAs || contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3" style={{ color: 'var(--danger)' }}><Trash2 size={15} /> Delete</button>
               </>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* iMESSAGE STYLE FLOATING CHAT */}
-      <div className={`fixed bottom-[100px] md:bottom-6 right-6 z-40 flex flex-col items-end transition-all duration-500`}>
-        <div className={`glass-card rounded-[24px] w-[340px] sm:w-[380px] mb-4 shadow-2xl transition-all duration-300 origin-bottom-right flex flex-col overflow-hidden border border-zinc-200/50 dark:border-zinc-800/50 ${isChatOpen ? 'h-[480px] opacity-100 scale-100' : 'h-0 opacity-0 scale-95 pointer-events-none'}`}>
-          <div className="h-16 bg-zinc-100/50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-5 shrink-0">
-             <div className="flex items-center gap-3"><div className="p-2 rounded-xl bg-blue-600 text-white shadow-sm"><MessageSquare size={16} /></div><span className="text-sm font-bold text-zinc-900 dark:text-white">{activeRoom} Comm-Link</span></div>
-             <button onClick={() => setIsChatOpen(false)} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 p-2 rounded-full transition-colors active:scale-95"><X size={16} /></button>
+      {/* FLOATING COMM-LINK CHAT */}
+      <div className="fixed bottom-[100px] md:bottom-6 right-6 z-40 flex flex-col items-end transition-all duration-300">
+        <div className={`vault-elevated rounded-2xl w-[340px] sm:w-[380px] mb-4 transition-all duration-200 origin-bottom-right flex flex-col overflow-hidden ${isChatOpen ? 'h-[480px] opacity-100 scale-100' : 'h-0 opacity-0 scale-95 pointer-events-none'}`}>
+          <div className="h-14 flex items-center justify-between px-5 shrink-0" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
+             <div className="flex items-center gap-3"><div className="p-1.5 rounded-md" style={{ backgroundColor: 'var(--accent)' }}><MessageSquare size={14} className="text-white" /></div><span className="text-[13px] font-bold" style={{ color: 'var(--text)' }}>{activeRoom} · Comm-Link</span></div>
+             <button onClick={() => setIsChatOpen(false)} className="vault-btn p-1.5 rounded-full" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}><X size={14} /></button>
           </div>
-          <div className="flex-1 overflow-y-auto p-5 space-y-5" ref={chatScrollRef}>
-            {roomMessages.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 text-xs text-center px-4 space-y-3"><Activity size={24} className="opacity-50" /><p className="font-medium">Encrypted channel open.<br/>Waiting for transmissions...</p></div> : roomMessages.map((msg, idx) => {
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar" ref={chatScrollRef}>
+            {roomMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-[12px] text-center px-4 space-y-3" style={{ color: 'var(--text-faint)' }}>
+                <Activity size={20} className="opacity-50" /><p className="font-medium">Channel open.<br/>Waiting for transmissions…</p>
+              </div>
+            ) : roomMessages.map((msg, idx) => {
                 const isMe = msg.sender === displayUsername; const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return (<div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-file-drop`}><span className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1.5 px-1 font-semibold">{isMe ? 'You' : msg.sender} • {time}</span><div className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-[13px] shadow-sm leading-relaxed font-medium ${isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-bl-sm'}`}>{msg.text}</div></div>);
+                return (
+                  <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-row-in`}>
+                    <span className="vault-mono text-[9.5px] mb-1 px-1" style={{ color: 'var(--text-faint)' }}>{isMe ? 'You' : msg.sender} · {time}</span>
+                    <div className="px-3.5 py-2 rounded-xl max-w-[85%] text-[12.5px] leading-relaxed font-medium" style={isMe ? { backgroundColor: 'var(--accent)', color: 'white', borderBottomRightRadius: 4 } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text)', border: '1px solid var(--border)', borderBottomLeftRadius: 4 }}>{msg.text}</div>
+                  </div>
+                );
             })}
           </div>
-          <form onSubmit={handleSendMessage} className="p-4 bg-zinc-100/50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex gap-3">
-             <input type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="iMessage..." className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white text-sm rounded-full px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-inner placeholder-zinc-400 font-medium" />
-             <button type="submit" disabled={!chatMessage.trim()} className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-all disabled:opacity-50 active:scale-95 shadow-md flex items-center justify-center"><Send size={16} className="-ml-0.5" /></button>
+          <form onSubmit={handleSendMessage} className="p-3.5 shrink-0 flex gap-2.5" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
+             <input type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} placeholder="Message…" className="vault-input flex-1 text-[13px] rounded-full px-4 py-2 font-medium" />
+             <button type="submit" disabled={!chatMessage.trim()} className="vault-btn vault-btn-primary p-2.5 rounded-full disabled:opacity-40 flex items-center justify-center"><Send size={15} className="-ml-0.5" /></button>
           </form>
         </div>
-        <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 active:scale-95 ${isChatOpen ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rotate-12' : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-[0_10px_30px_rgba(37,99,235,0.4)]'}`}>{isChatOpen ? <X size={24} /> : <MessageSquare size={24} />}</button>
+        <button onClick={() => setIsChatOpen(!isChatOpen)} className="vault-btn w-12 h-12 rounded-full flex items-center justify-center" style={isChatOpen ? { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' } : { backgroundColor: 'var(--accent)', color: 'white' }}>
+          {isChatOpen ? <X size={20} /> : <MessageSquare size={20} />}
+        </button>
       </div>
     </div>
   );
