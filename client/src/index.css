@@ -1,127 +1,75 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-/* ==========================================================================
-   MVK VAULT — Design tokens ("Ledger / Ops Console")
-   Graphite console surface, hairline borders, one controlled accent.
-   Mono face carries structural/system labels; Inter carries content.
-   ========================================================================== */
-
-:root {
-  --bg: #F5F6F7;
-  --surface: #FFFFFF;
-  --surface-raised: #FAFBFC;
-  --surface-sunken: #EEF0F2;
-  --border: #E1E4E8;
-  --border-strong: #C9CDD3;
-  --text: #14171B;
-  --text-dim: #6B7280;
-  --text-faint: #9CA3AF;
-
-  --accent: #3E5FE0;
-  --accent-hover: #3450C4;
-  --accent-soft: rgba(62, 95, 224, 0.08);
-  --accent-border: rgba(62, 95, 224, 0.25);
-
-  --danger: #D7373F;
-  --danger-soft: rgba(215, 55, 63, 0.08);
-  --success: #1C8A5C;
-  --success-soft: rgba(28, 138, 92, 0.10);
-  --warning: #B4740E;
-  --warning-soft: rgba(180, 116, 14, 0.10);
-
-  --shadow-sm: 0 1px 2px rgba(15, 18, 22, 0.06);
-  --shadow-md: 0 4px 16px rgba(15, 18, 22, 0.08);
-  --shadow-lg: 0 12px 32px rgba(15, 18, 22, 0.14);
-}
-
-.dark {
-  --bg: #0B0D10;
-  --surface: #14171B;
-  --surface-raised: #1B1F24;
-  --surface-sunken: #0E1013;
-  --border: #262B31;
-  --border-strong: #363C44;
-  --text: #E8EAED;
-  --text-dim: #8B929B;
-  --text-faint: #565D66;
-
-  --accent: #5C82F0;
-  --accent-hover: #7396F5;
-  --accent-soft: rgba(92, 130, 240, 0.12);
-  --accent-border: rgba(92, 130, 240, 0.3);
-
-  --danger: #EF5A61;
-  --danger-soft: rgba(239, 90, 97, 0.12);
-  --success: #3FCE8C;
-  --success-soft: rgba(63, 206, 140, 0.12);
-  --warning: #E3A53E;
-  --warning-soft: rgba(227, 165, 62, 0.12);
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5);
-}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-.font-mono, .vault-mono { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace; }
+/* ==========================================================================
+   MVK VAULT — Design tokens ("Ledger / Ops Console")
+   ========================================================================== */
 
-@layer utilities {
-/* Hide scrollbar for Chrome, Safari and Opera */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none; 
-    scrollbar-width: none; 
-  }
+@layer base {
+  :root {
+    --bg: #F5F6F7;
+    --surface: #FFFFFF;
+    --surface-raised: #FAFBFC;
+    --surface-sunken: #EEF0F2;
+    --border: #E1E4E8;
+    --border-strong: #C9CDD3;
+    --text: #14171B;
+    --text-dim: #6B7280;
+    --text-faint: #9CA3AF;
 
-  /* Premium Apple Glassmorphism */
-  .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-  }
+    --accent: #3E5FE0;
+    --accent-hover: #3450C4;
+    --accent-soft: rgba(62, 95, 224, 0.08);
+    --accent-border: rgba(62, 95, 224, 0.25);
 
-  .dark .glass-card {
-    background: rgba(24, 24, 27, 0.75);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  }
+    --danger: #D7373F;
+    --danger-soft: rgba(215, 55, 63, 0.08);
+    --success: #1C8A5C;
+    --success-soft: rgba(28, 138, 92, 0.10);
+    --warning: #B4740E;
+    --warning-soft: rgba(180, 116, 14, 0.10);
 
-  .glass-pill {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .dark .glass-pill {
-    background: rgba(39, 39, 42, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    --shadow-sm: 0 1px 2px rgba(15, 18, 22, 0.06);
+    --shadow-md: 0 4px 16px rgba(15, 18, 22, 0.08);
+    --shadow-lg: 0 12px 32px rgba(15, 18, 22, 0.14);
   }
 
-  /* The Floating Upload Dock */
-  .mac-dock { 
-    background: rgba(30, 30, 30, 0.6); 
-    backdrop-filter: blur(40px); 
-    -webkit-backdrop-filter: blur(40px); 
-    border: 1px solid rgba(255, 255, 255, 0.1); 
-    box-shadow: 0 15px 40px rgba(0,0,0,0.6); 
-    border-radius: 9999px; 
+  .dark {
+    --bg: #0B0D10;
+    --surface: #14171B;
+    --surface-raised: #1B1F24;
+    --surface-sunken: #0E1013;
+    --border: #262B31;
+    --border-strong: #363C44;
+    --text: #E8EAED;
+    --text-dim: #8B929B;
+    --text-faint: #565D66;
+
+    --accent: #5C82F0;
+    --accent-hover: #7396F5;
+    --accent-soft: rgba(92, 130, 240, 0.12);
+    --accent-border: rgba(92, 130, 240, 0.3);
+
+    --danger: #EF5A61;
+    --danger-soft: rgba(239, 90, 97, 0.12);
+    --success: #3FCE8C;
+    --success-soft: rgba(63, 206, 140, 0.12);
+    --warning: #E3A53E;
+    --warning-soft: rgba(227, 165, 62, 0.12);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.5);
   }
 
-  .mac-click:active { 
-    transform: scale(0.96); 
-    transition: transform 0.1s; 
-  }
-  /* --- Surfaces (hairline borders, no blur) --- */
+  html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+}
+
+@layer components {
+  /* --- Surfaces --- */
   .vault-panel {
     background-color: var(--surface);
     border: 1px solid var(--border);
@@ -141,7 +89,7 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
     backdrop-filter: blur(4px);
   }
 
-  /* --- Clearance rail: signature element. Left-edge stripe encoding access tier --- */
+  /* --- Clearance rail --- */
   .rail-open   { box-shadow: inset 3px 0 0 var(--accent); }
   .rail-locked { box-shadow: inset 3px 0 0 var(--warning); }
   .rail-admin  { box-shadow: inset 3px 0 0 var(--danger); }
@@ -216,31 +164,82 @@ html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
     box-shadow: 0 0 0 3px var(--success-soft);
   }
 
-  /* --- Toolbar (docked, not floating pill) --- */
+  /* --- Toolbar --- */
   .vault-toolbar {
     background-color: var(--surface);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-md);
   }
-
-  /* --- Focus visibility (accessibility floor) --- */
-  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  /* --- Scrollbar --- */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* ==========================================================================
-   Motion — small and quiet. No bounce/spring, no ambient decoration.
-   ========================================================================== */
+@layer utilities {
+  .font-mono, .vault-mono { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace; }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+  }
+
+  /* Premium Apple Glassmorphism */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+
+  .dark .glass-card {
+    background: rgba(24, 24, 27, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .dark .glass-pill {
+    background: rgba(39, 39, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* The Floating Upload Dock */
+  .mac-dock { 
+    background: rgba(30, 30, 30, 0.6); 
+    backdrop-filter: blur(40px); 
+    -webkit-backdrop-filter: blur(40px); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6); 
+    border-radius: 9999px; 
+  }
+
+  .mac-click:active { 
+    transform: scale(0.96); 
+    transition: transform 0.1s; 
+  }
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* --- Focus visibility (accessibility floor) --- */
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- Motion --- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
