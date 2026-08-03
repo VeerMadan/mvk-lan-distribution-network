@@ -639,14 +639,23 @@ const handleSignOut = () => {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <h3 className="vault-mono text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>2 — Expiration timer</h3>
-                  <div className="grid grid-cols-4 gap-2.5">
-                    {[1, 12, 24, 168].map(hours => (
-                      <button key={hours} onClick={() => setStagedExpiry(hours)} className="vault-btn py-3.5 px-2 rounded-lg flex flex-col items-center justify-center gap-1 border" style={stagedExpiry === hours ? { backgroundColor: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)', borderColor: 'var(--border)' }}><span className="font-bold text-[11px]">{hours === 168 ? '7 days' : `${hours}h`}</span></button>
-                    ))}
+                {activeRoom !== 'The Drive' ? (
+                  <div>
+                    <h3 className="vault-mono text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>2 — Expiration timer</h3>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {[1, 12, 24, 168].map(hours => (
+                        <button key={hours} onClick={() => setStagedExpiry(hours)} className="vault-btn py-3.5 px-2 rounded-lg flex flex-col items-center justify-center gap-1 border" style={stagedExpiry === hours ? { backgroundColor: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' } : { backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)', borderColor: 'var(--border)' }}><span className="font-bold text-[11px]">{hours === 168 ? '7 days' : `${hours}h`}</span></button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <h3 className="vault-mono text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-faint)' }}>2 — Storage Rule</h3>
+                    <div className="vault-panel p-4 rounded-lg flex items-center justify-center border-dashed border-2" style={{ borderColor: 'var(--success-soft)' }}>
+                      <span className="text-[12px] font-bold" style={{ color: 'var(--success)' }}>Files uploaded to The Drive are permanently archived.</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-6 shrink-0 flex gap-3" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>

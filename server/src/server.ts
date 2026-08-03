@@ -271,6 +271,9 @@ const cleanupUploads = () => {
     const history = JSON.parse(rawData);
     const freshHistory = history.filter((record: any) => {
       if (record.isFolder) return true; 
+      
+      // IMMORTALITY PROTOCOL: Never delete files from The Drive
+      if (record.room === 'The Drive') return true;
 
       const absolutePath = path.join(UPLOADS_DIR, record.savedAs || record.fileName);
       const fileExists = fs.existsSync(absolutePath);
