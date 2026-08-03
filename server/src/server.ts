@@ -30,7 +30,7 @@ app.use('/preview', express.static(UPLOADS_DIR));
 
 // --- ZERO-TRUST AUTHENTICATION SYSTEM (STRICT LOCKDOWN) ---
 // Add the exact names of your Digital Team here (lowercase):
-const APPROVED_TEAM = ['rahul', 'priya', 'amit', 'neha', 'karan']; 
+const APPROVED_TEAM = ['Likhit', 'Manoj', 'Veer', 'Sanat']; 
 
 app.post('/api/auth/check', (req: any, res: any) => {
   let { username, deviceId } = req.body;
