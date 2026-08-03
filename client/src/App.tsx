@@ -951,18 +951,12 @@ const App = () => {
   return (
     <div className="flex h-screen cyber-vortex-bg text-gray-200 overflow-hidden font-sans animate-spring relative" onDrop={(e) => storageUsed < STORAGE_LIMIT && handleDrop(e)} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
       
-      {/* THE BULLETPROOF VORTEX */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-         <div className="vortex-abyss"></div>
-         <div className="vortex-grid"></div>
-         <div className="vortex-vignette"></div>
-         
-         {/* Ambient Lighting */}
-         {godMode ? (
-            <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.15),transparent_70%)] animate-pulse" />
-         ) : (
-            <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.08),transparent_80%)]" />
-         )}
+      {/* PREMIUM MACOS AMBIENCE */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#09090b]">
+         {/* Top Left Ambient Glow */}
+         <div className={`absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] opacity-20 ${godMode ? 'bg-red-600' : 'bg-[#FFD700]'}`}></div>
+         {/* Bottom Right Ambient Glow */}
+         <div className={`absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] opacity-[0.15] ${godMode ? 'bg-red-900' : 'bg-blue-600'}`}></div>
       </div>
 
       <ParticleCanvas isAnimating={fireParticles} isGodMode={godMode} />
@@ -1223,8 +1217,8 @@ const App = () => {
                   const isSelected = selectedFiles.includes(item.savedAs);
                   
                   return (
-                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} className={`mac-glass p-4 rounded-2xl flex items-center justify-between transition-all duration-300 group relative ${deletingItemIds.includes(item.savedAs || item.fileName)
- ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `${brandBorder}/50 bg-white/10 shadow-[0_0_20px_currentColor]` : `hover:bg-white/10 hover:scale-[1.01] hover:border-white/20 ${props.shadow}`}`}>
+                    <div key={idx} style={{ animationDelay: `${idx * 0.05}s` }} onContextMenu={(e) => openContextMenu(e, item)} className={`mac-glass px-5 py-4 rounded-[20px] flex items-center justify-between transition-all duration-300 group relative ${deletingItemIds.includes(item.savedAs || item.fileName)
+ ? 'anim-purge' : 'animate-file-drop'} ${isSelected ? `border-${godMode?'red':'yellow'}-500/50 bg-white/10 shadow-[0_0_20px_currentColor]` : `border-white/5 hover:bg-white/[0.08] hover:-translate-y-[2px] hover:shadow-xl ${props.shadow}`}`}>
                       
      {/* BATCH CHECKBOX (LIST VIEW) */}
                       <div onClick={(e) => toggleFileSelection(e, item.savedAs || item.fileName)} className={`absolute left-4 top-1/2 -translate-y-1/2 p-1 rounded-md border-2 cursor-pointer transition-all duration-200 z-20 shadow-[0_0_15px_rgba(0,0,0,0.5)] ${isSelected ? `${brandBg} ${brandBorder} text-black opacity-100 scale-100` : `bg-black/90 border-gray-500 text-transparent opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:border-white`}`}>
@@ -1336,19 +1330,23 @@ const App = () => {
             </div>
           )}
 
-          <div className="flex gap-2 sm:gap-4 pointer-events-auto">
-            <button onClick={() => setShowFolderModal(true)} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-1 mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:${brandColor}`}`}>
-              <FolderPlus size={20} className="shrink-0" />
-              <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs text-center leading-tight hidden sm:inline">New Folder</span>
+          <div className="mac-dock p-2 flex items-center gap-1 sm:gap-2 pointer-events-auto mx-auto w-fit">
+            <button onClick={() => setShowFolderModal(true)} disabled={storageUsed >= STORAGE_LIMIT} className={`px-5 py-3 rounded-full flex items-center gap-2 transition-all duration-300 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:bg-white/10 text-gray-300 hover:text-white`}`}>
+              <FolderPlus size={18} className="shrink-0" />
+              <span className="font-semibold tracking-wide text-xs hidden sm:inline">New Folder</span>
             </button>
-            <button onClick={() => storageUsed < STORAGE_LIMIT && fileInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
-              <FilePlus className={`${brandColor} shrink-0`} size={20} />
-              <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs">Upload Files</span>
+            
+            <div className="w-px h-6 bg-white/10 mx-1"></div>
+
+            <button onClick={() => storageUsed < STORAGE_LIMIT && fileInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`px-5 py-3 rounded-full flex items-center gap-2 transition-all duration-300 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:bg-white/10 text-gray-300 hover:text-white`}`}>
+              <FilePlus className={`${brandColor} shrink-0`} size={18} />
+              <span className="font-semibold tracking-wide text-xs hidden sm:inline">Files</span>
               <input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
             </button>
-            <button onClick={() => storageUsed < STORAGE_LIMIT && folderInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`flex-[2] mac-glass-dark rounded-3xl p-4 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:border-${godMode?'red-500':'[#FFD700]'}/50 text-gray-300 hover:text-white`}`}>
-              <FolderUp className={`${brandColor} shrink-0`} size={20} />
-              <span className="font-bold tracking-widest uppercase text-[10px] sm:text-xs">Upload Folder</span>
+
+            <button onClick={() => storageUsed < STORAGE_LIMIT && folderInputRef.current?.click()} disabled={storageUsed >= STORAGE_LIMIT} className={`px-5 py-3 rounded-full flex items-center gap-2 transition-all duration-300 mac-click ${storageUsed >= STORAGE_LIMIT ? 'opacity-50' : `hover:bg-white/10 text-gray-300 hover:text-white`}`}>
+              <FolderUp className={`${brandColor} shrink-0`} size={18} />
+              <span className="font-semibold tracking-wide text-xs hidden sm:inline">Folder</span>
               {/* @ts-ignore */}
               <input type="file" webkitdirectory="" directory="" className="hidden" ref={folderInputRef} onChange={handleFileSelect} />
             </button>

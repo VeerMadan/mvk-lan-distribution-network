@@ -111,34 +111,28 @@
 @tailwind utilities;
 
 @layer utilities {
-  /* Apple-style Frosted Glass Panels */
+  /* True macOS Thin Material Glass */
   .mac-glass {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+    @apply bg-[#1c1c1e]/70 backdrop-blur-2xl border border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.4)];
   }
   
-  /* Deep Dark Mode Glass */
+  /* Deep Modal Glass */
   .mac-glass-dark {
-    @apply bg-black/40 backdrop-blur-2xl border border-white/10 shadow-2xl;
+    @apply bg-[#000000]/60 backdrop-blur-3xl border border-white/10 shadow-2xl;
   }
-
-  /* iOS Spring Click Animation */
+  
+  /* The Apple Floating Dock */
+  .mac-dock {
+    @apply bg-[#1e1e1e]/80 backdrop-blur-2xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-full;
+  }
+  
   .mac-click {
-    @apply transition-all duration-200 active:scale-95 hover:brightness-110;
+    @apply transition-transform duration-200 active:scale-95;
   }
 
-  /* Sleek Apple Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent; 
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2); 
-    border-radius: 10px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4); 
-  }
+  /* Sleek Minimalist Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 }
