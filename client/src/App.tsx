@@ -182,17 +182,17 @@ const App = () => {
     }
   }, [isNameSet, isOnline, displayUsername, deviceId]);
 
-  // Socket & Sync Engine
+// Socket & Sync Engine
   useEffect(() => {
-    if (!isNameSet) return; 
-
-    axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
+    // Only fetch storage if the UI is fully unlocked (prevents typing spam)
+    if (isNameSet) {
+       axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
+    }
 
     const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
     socket.on('connect', onConnect); 
     socket.on('disconnect', () => setIsOnline(false));
-    
-    // 🚨 ANTI-LOOP WEBSOCKET ERROR HANDLER 🚨
+
     socket.on('connect_error', (err) => {
        console.error("Socket Error:", err);
        setIsConnecting(false);
@@ -227,7 +227,7 @@ const App = () => {
     if (socket.connected) onConnect();
 
     return () => {
-      socket.off('connect'); socket.off('disconnect'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete');
+      socket.off('connect'); socket.off('disconnect'); socket.off('connect_error'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete');
     };
   }, [activeRoom, displayUsername, isNameSet]);
 
