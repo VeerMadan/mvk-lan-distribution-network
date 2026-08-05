@@ -37,7 +37,9 @@ const fadeIn = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opaci
 const panelIn = { initial: { opacity: 0, y: 6, scale: 0.99 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: 6, scale: 0.99 }, transition: { duration: 0.16 } };
 
 const App = () => {
-  // --- CORE SYSTEM STATE ---
+  // ==========================================
+  // 1. ALL STATE HOOKS
+  // ==========================================
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [username, setUsername] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
@@ -47,7 +49,6 @@ const App = () => {
   const [authPin, setAuthPin] = useState('');
   const [pinErrorText, setPinErrorText] = useState('');
 
-  // --- VAULT DATA STATE ---
   const [activeRoom, setActiveRoom] = useState('General');
   const [isOnline, setIsOnline] = useState(false);
   const [roomItems, setRoomItems] = useState<any[]>([]);
@@ -57,7 +58,6 @@ const App = () => {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
 
-  // --- UI & MODAL STATE ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingRoom, setPendingRoom] = useState('');
@@ -72,7 +72,6 @@ const App = () => {
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderTarget, setNewFolderTarget] = useState('Everyone');
 
-  // --- UPLOAD & FILE OPERATIONS ---
   const [isDragging, setIsDragging] = useState(false);
   const [stagingFiles, setStagingFiles] = useState<File[]>([]);
   const [stagedTarget, setStagedTarget] = useState<string>('Everyone');
@@ -85,7 +84,6 @@ const App = () => {
   const [deletingItemIds, setDeletingItemIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{show: boolean, x: number, y: number, file: any | null}>({show: false, x: 0, y: 0, file: null});
 
-  // --- COMM-LINK ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [roomMessages, setRoomMessages] = useState<any[]>([]);
@@ -93,8 +91,6 @@ const App = () => {
 
   const [storageUsed, setStorageUsed] = useState(0);
   const STORAGE_LIMIT = 100;
-  const [hasUpdate, setHasUpdate] = useState(false);
-  const [commitsBehind, setCommitsBehind] = useState(0);
   const [showCredits, setShowCredits] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,18 +107,11 @@ const App = () => {
     { name: 'Admin Only', icon: <ShieldCheck size={16} />, locked: true },
   ];
 
-  const handleSignOut = () => {
-    socket.disconnect();
-    setIsNameSet(false);
-    setUsername('');
-    setAuthStep('name');
-    setAuthPin('');
-    setPinErrorText('');
-    setRoomItems([]);
-    setRoomMessages([]);
-  };
+  // ==========================================
+  // 2. ALL EFFECT HOOKS (MUST BE ABOVE EARLY RETURNS)
+  // ==========================================
 
-  // 🚨 TOP-LEVEL HOOKS (Fixes React Error 310 WSOD) 🚨
+  // URL Routing
   useEffect(() => {
     if (!isNameSet) return;
     const formattedRoom = activeRoom.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -137,11 +126,13 @@ const App = () => {
     window.history.pushState({}, '', newUrl);
   }, [activeRoom, currentFolderId, roomItems, isNameSet]);
 
+  // Dark Mode Engine
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
+  // Global Clicks
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) playClick();
@@ -151,13 +142,14 @@ const App = () => {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
+  // Device ID Engine
   useEffect(() => {
     let id = localStorage.getItem('mvk_device_id');
     if (!id) { id = Math.random().toString(36).substring(2, 15); localStorage.setItem('mvk_device_id', id); }
     setDeviceId(id);
   }, []);
 
-  // 🚨 DEDICATED SECURITY KICK LISTENER (Safely moved to top level) 🚨
+  // Dedicated Security Kick Listener
   useEffect(() => {
     if (!displayUsername || !isNameSet) return; 
     
@@ -171,17 +163,30 @@ const App = () => {
          });
       }
     };
-
     socket.on('security-kick', handleKick);
     return () => { socket.off('security-kick', handleKick); };
   }, [displayUsername, isNameSet]);
 
-  // --- SOCKET SYNC ---
+  // Secure Asset Retrieval (Auto Download interceptor)
   useEffect(() => {
-    if (!isNameSet) return; // 🚨 PREVENTS API SPAM WHILE TYPING 🚨
+    if (!isNameSet || !isOnline) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const asset = urlParams.get('asset');
+    
+    if (asset) {
+       const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(asset)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+       const a = document.createElement('a');
+       a.href = downloadUrl; a.download = asset; 
+       document.body.appendChild(a); a.click(); document.body.removeChild(a);
+       window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [isNameSet, isOnline, displayUsername, deviceId]);
+
+  // Socket & Sync Engine
+  useEffect(() => {
+    if (!isNameSet) return; 
 
     axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
-    // Removed /api/check-updates completely to eliminate 404 errors
 
     const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
     socket.on('connect', onConnect); socket.on('disconnect', () => setIsOnline(false));
@@ -222,35 +227,32 @@ const App = () => {
     if (isOnline && isNameSet) { setRoomItems([]); setRoomMessages([]); setSelectedFiles([]); socket.emit('join-department', { room: activeRoom, username: displayUsername }); socket.emit('request-master-sync'); }
   }, [activeRoom, isOnline, isNameSet, displayUsername]);
 
-  // --- AUTHENTICATION API ---
+  // ==========================================
+  // 3. FUNCTIONS & METHODS
+  // ==========================================
+
+  const handleSignOut = () => {
+    socket.disconnect(); setIsNameSet(false); setUsername(''); setAuthStep('name'); setAuthPin(''); setPinErrorText(''); setRoomItems([]); setRoomMessages([]);
+  };
+
   const handleNameLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalName = username.trim();
-    const attemptName = finalName.toLowerCase();
-
-    if (['system admin', 'veer_dev', 'admin'].includes(attemptName)) {
-      setPendingAdminName(finalName); setAdminAuthModal(true); return;
-    }
+    const finalName = username.trim(); const attemptName = finalName.toLowerCase();
+    if (['system admin', 'veer_dev', 'admin'].includes(attemptName)) { setPendingAdminName(finalName); setAdminAuthModal(true); return; }
     if (!finalName) return;
 
     setIsConnecting(true); setPinErrorText('');
     try {
       const res = await axios.post(`${SERVER_URL}/api/auth/check`, { username: finalName, deviceId });
       if (res.data.status === 'needs_tag') {
-         setIsConnecting(false);
-         setCustomAlert({title: 'Tag Required', msg: 'Multiple users share this name. Please enter your full tag (e.g. Name#1234).'});
-         return;
+         setIsConnecting(false); setCustomAlert({title: 'Tag Required', msg: 'Multiple users share this name. Please enter your full tag (e.g. Name#1234).'}); return;
       }
-      const resolvedName = res.data.resolvedName;
-      setUsername(resolvedName);
-
+      const resolvedName = res.data.resolvedName; setUsername(resolvedName);
       if (res.data.status === 'challenge') { setIsConnecting(false); setAuthStep('challenge'); playError(); }
       else if (res.data.requiresPinSetup) { setIsConnecting(false); setAuthStep('setup_pin'); playSuccess(); }
       else { playSuccess(); socket.auth = { username: resolvedName }; socket.connect(); }
     } catch (err: any) {
-      setIsConnecting(false);
-      setCustomAlert({title: 'Clearance Denied', msg: err.response?.data?.error || "Network connection failed."});
-      playError();
+      setIsConnecting(false); setCustomAlert({title: 'Clearance Denied', msg: err.response?.data?.error || "Network connection failed."}); playError();
     }
   };
 
@@ -258,13 +260,9 @@ const App = () => {
     setIsConnecting(true);
     try {
       const res = await axios.post(`${SERVER_URL}/api/auth/pin`, { username: pendingAdminName, pin: adminPinInput, action: 'verify' });
-      if (res.data.status === 'success') {
-        setAdminAuthModal(false); playSuccess(); socket.auth = { username: pendingAdminName }; socket.connect();
-      }
+      if (res.data.status === 'success') { setAdminAuthModal(false); playSuccess(); socket.auth = { username: pendingAdminName }; socket.connect(); }
     } catch (err: any) {
-      setIsConnecting(false); playError(); setAdminAuthModal(false);
-      setCustomAlert({title: 'SYSTEM BREACH DETECTED', msg: err.response?.data?.error || 'Invalid Admin Protocol'});
-      setUsername(''); setAdminPinInput('');
+      setIsConnecting(false); playError(); setAdminAuthModal(false); setCustomAlert({title: 'SYSTEM BREACH DETECTED', msg: err.response?.data?.error || 'Invalid Admin Protocol'}); setUsername(''); setAdminPinInput('');
     }
   };
 
@@ -288,24 +286,13 @@ const App = () => {
   const submitPin = (instantPin?: string) => {
     const pinToTest = typeof instantPin === 'string' ? instantPin : pinInput;
     if (pinToTest === ROOM_PINS[pendingRoom]) {
-      setPinError(''); playSuccess();
-      setActiveRoom(pendingRoom); setSearchQuery(''); setCurrentFolderId(null);
-      setShowPinModal(false); setPinInput('');
+      setPinError(''); playSuccess(); setActiveRoom(pendingRoom); setSearchQuery(''); setCurrentFolderId(null); setShowPinModal(false); setPinInput('');
     } else {
-      const errorRoasts = [
-        "Hold up, hacker man. Wrong PIN.", "Access Denied. The Beast Server rejects your offering.",
-        "Error 403: Did you type that with your elbows?", "Nice try. Are you sure you work here?",
-        "Invalid PIN. The cyber police have been notified... jk, try again.", "How dumb you can be, can't you even guess a 4-digit code? Pathetic.",
-        "My grandmother types faster and guesses better than you.", "Are you randomly hitting the numpad? Focus.",
-        "Security alert triggered. Initiating self-destruct... 3... 2... kidding. Try again.", "Did you forget your PIN or did the PIN forget you?",
-        "4 digits. FOUR. You had one job.", "I've seen monkeys solve puzzles faster. Just saying."
-      ];
-      setPinError(errorRoasts[Math.floor(Math.random() * errorRoasts.length)]);
-      setPinInput(''); playError();
+      const errorRoasts = ["Hold up, hacker man. Wrong PIN.", "Access Denied.", "Invalid PIN. Try again."];
+      setPinError(errorRoasts[Math.floor(Math.random() * errorRoasts.length)]); setPinInput(''); playError();
     }
   };
 
-  // --- ACTIONS ---
   const triggerDownload = (e: React.MouseEvent, url: string, fileName: string) => {
     e.preventDefault(); e.stopPropagation();
     const a = document.createElement('a'); a.href = url; a.download = fileName; a.target = '_blank';
@@ -393,23 +380,12 @@ const App = () => {
     try {
       const response = await axios.post(`${SERVER_URL}/api/download-batch`, { files: selectedFiles }, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-
-      const now = new Date(); 
-      const timeStamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
+      const link = document.createElement('a'); link.href = url;
+      const now = new Date(); const timeStamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
       link.setAttribute('download', `MVK-Vault-Export_${timeStamp}.zip`);
-
-      document.body.appendChild(link);
-      link.click();
-      window.URL.revokeObjectURL(url);
-      showToast('Batch archive exported');
-      setSelectedFiles([]);
-    } catch (error) {
-      playError(); showToast('Error generating archive');
-    } finally {
-      setIsBatchDownloading(false);
-    }
+      document.body.appendChild(link); link.click(); window.URL.revokeObjectURL(url);
+      showToast('Batch archive exported'); setSelectedFiles([]);
+    } catch (error) { playError(); showToast('Error generating archive'); } finally { setIsBatchDownloading(false); }
   };
 
   const promptBatchDelete = () => {
@@ -420,20 +396,17 @@ const App = () => {
     });
 
     if (!canDeleteAll) {
-      playError(); setCustomAlert({ title: "Clearance Denied", msg: "You can only bulk-purge assets you personally uploaded unless you have Admin override." });
-      return;
+      playError(); setCustomAlert({ title: "Clearance Denied", msg: "You can only bulk-purge assets you personally uploaded unless you have Admin override." }); return;
     }
     setFilesToDelete([...selectedFiles]);
   };
 
   const openContextMenu = (e: React.MouseEvent, item: any) => {
-    e.preventDefault(); e.stopPropagation();
-    setContextMenu({ show: true, x: e.pageX, y: e.pageY, file: item });
+    e.preventDefault(); e.stopPropagation(); setContextMenu({ show: true, x: e.pageX, y: e.pageY, file: item });
   };
 
   const toggleFileSelection = (e: React.MouseEvent, savedAs: string) => {
-    e.stopPropagation();
-    setSelectedFiles(prev => prev.includes(savedAs) ? prev.filter(id => id !== savedAs) : [...prev, savedAs]);
+    e.stopPropagation(); setSelectedFiles(prev => prev.includes(savedAs) ? prev.filter(id => id !== savedAs) : [...prev, savedAs]);
   };
 
   const checkPreviewable = (fileName: string) => {
@@ -441,30 +414,26 @@ const App = () => {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'mp4', 'webm', 'mov'].includes(fileName.split('.').pop()?.toLowerCase() || '');
   };
 
-  const promptDelete = (identifier: string) => {
-    setFilesToDelete([identifier]);
-  };
+  const promptDelete = (identifier: string) => { setFilesToDelete([identifier]); };
 
   const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatMessage.trim()) return;
-    socket.emit('send-chat-message', { room: activeRoom, sender: displayUsername, text: chatMessage });
-    setChatMessage('');
+    e.preventDefault(); if (!chatMessage.trim()) return;
+    socket.emit('send-chat-message', { room: activeRoom, sender: displayUsername, text: chatMessage }); setChatMessage('');
   };
 
   const openPreview = (file: any) => {
     const ext = file.fileName.toLowerCase().split('.').pop();
     let type: 'image' | 'pdf' | 'video' = 'image';
-    if (ext === 'pdf') type = 'pdf';
-    if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video';
-    setPreviewFile({ url: `${SERVER_URL}/preview/${encodeURIComponent(file.savedAs || file.fileName)}`, name: file.fileName, type });
+    if (ext === 'pdf') type = 'pdf'; if (['mp4', 'webm', 'mov'].includes(ext)) type = 'video';
+    setPreviewFile({ url: `${SERVER_URL}/preview/${encodeURIComponent(file.savedAs || file.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(deviceId)}`, name: file.fileName, type });
   };
 
-  // --- RENDER LOGIN PORTAL ---
+  // ==========================================
+  // 4. LOGIN RENDER (EARLY RETURN)
+  // ==========================================
   if (!isNameSet) {
     return (
       <div className="flex h-screen items-center justify-center font-sans relative overflow-hidden transition-colors" style={{ backgroundColor: 'var(--bg)' }}>
-
         <motion.div {...panelIn} className="vault-elevated p-8 sm:p-10 rounded-2xl text-center w-11/12 max-w-sm relative z-10">
           {authStep === 'name' && (
             <form onSubmit={handleNameLogin} className="flex flex-col items-center">
@@ -549,7 +518,9 @@ const App = () => {
     );
   }
 
-  // --- RENDER MAIN APPLICATION ---
+  // ==========================================
+  // 5. MAIN APP RENDER
+  // ==========================================
   return (
     <div
       className="flex h-screen font-sans transition-colors antialiased overflow-hidden"
@@ -571,14 +542,12 @@ const App = () => {
         isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen}
         activeRoom={activeRoom} attemptRoomJoin={attemptRoomJoin} rooms={rooms}
         storageUsed={storageUsed} STORAGE_LIMIT={STORAGE_LIMIT}
-        hasUpdate={hasUpdate} commitsBehind={commitsBehind}
+        hasUpdate={false} commitsBehind={0}
         setShowCredits={setShowCredits} displayUsername={displayUsername}
         handleSignOut={handleSignOut}
       />
 
       <main className="flex-1 flex flex-col relative w-full overflow-hidden z-10">
-
-        {/* Header */}
         <header className="shrink-0 h-14 flex items-center px-4 md:px-8 z-20" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
           <div className="flex items-center gap-4 w-full">
             <button className="md:hidden" style={{ color: 'var(--text-dim)' }} onClick={() => setIsMobileMenuOpen(true)}><Menu size={19} /></button>
@@ -719,7 +688,7 @@ const App = () => {
           </motion.div>
         )}
 
-        {/* RIGHT CLICK CONTEXT MENU */}
+        {/* 🚨 FIXED RIGHT CLICK CONTEXT MENU 🚨 */}
         {contextMenu.show && contextMenu.file && (
           <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.12 }} className="fixed z-[1000] w-56 vault-elevated rounded-xl overflow-hidden py-1.5" style={{ top: Math.min(contextMenu.y, window.innerHeight - 200), left: Math.min(contextMenu.x, window.innerWidth - 250) }}>
             <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid var(--border)' }}><p className="text-[11px] font-bold truncate w-full" style={{ color: 'var(--text)' }}>{contextMenu.file.fileName}</p></div>
