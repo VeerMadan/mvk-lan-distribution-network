@@ -1,6 +1,6 @@
 import { Search, CheckSquare, List, LayoutGrid, Folder, FileText, Film, FileArchive, FileImage, Headphones, Code, Check, Link, Trash2, Eye, Download, Activity, FolderPlus, FilePlus, FolderUp, X, Lock } from 'lucide-react';
 
-const SERVER_URL = window.location.origin;
+const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
 
 const getAvatarGradient = (name: string) => {
   let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);

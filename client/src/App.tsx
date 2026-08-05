@@ -8,7 +8,7 @@ import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 
-const SERVER_URL = window.location.origin;
+const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
 const socket = io(SERVER_URL, { autoConnect: false, transports: ['websocket', 'polling'] });
 
 const ROOM_PINS: Record<string, string> = {
@@ -189,7 +189,15 @@ const App = () => {
     axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
 
     const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
-    socket.on('connect', onConnect); socket.on('disconnect', () => setIsOnline(false));
+    socket.on('connect', onConnect); 
+    socket.on('disconnect', () => setIsOnline(false));
+    
+    // 🚨 ANTI-LOOP WEBSOCKET ERROR HANDLER 🚨
+    socket.on('connect_error', (err) => {
+       console.error("Socket Error:", err);
+       setIsConnecting(false);
+       setCustomAlert({ title: 'Tunnel Severed', msg: 'Failed to establish a secure WebSocket connection to Port 3000.' });
+    });
 
     socket.on('incoming-transfer', (data) => {
        setRoomItems((prev) => {
