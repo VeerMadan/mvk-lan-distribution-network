@@ -242,6 +242,16 @@ const attemptRoomJoin = (targetRoom: string) => {
     socket.on('connect', onConnect); socket.on('disconnect', () => setIsOnline(false));
 
     socket.on('incoming-transfer', (data) => {
+      // 🚨 LISTEN FOR THE REMOTE KILL SIGNAL 🚨
+    socket.on('security-kick', (data) => {
+      if (data.username === displayUsername.toLowerCase() && data.activeDevice !== deviceId) {
+         handleSignOut();
+         setCustomAlert({
+           title: 'Session Terminated', 
+           msg: 'Your account was just accessed from another device. For your protection, this local session has been instantly terminated.'
+         });
+      }
+    });
        setRoomItems((prev) => {
          if (data.room !== activeRoom) return prev;
          if (prev.some(f => (f.downloadUrl && f.downloadUrl === data.downloadUrl) || (f.isFolder && f.id === data.id))) return prev;

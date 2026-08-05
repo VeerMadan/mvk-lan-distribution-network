@@ -84,10 +84,15 @@ app.post('/api/auth/pin', (req: any, res: any) => {
 
   if (action === 'verify') {
     if (user.pin === pin) {
-      // BOOT OUT PREVIOUS DEVICE INSTANTLY
+      // 🚨 INSTANT SINGLE-DEVICE LOCK 🚨
+      const previousDevice = user.currentDevice;
       user.currentDevice = deviceId; 
       user.sessionExpiresAt = Date.now() + 15 * 60 * 1000;
       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+
+      // 🚨 BROADCAST KILL SIGNAL TO THE OLD DEVICE 🚨
+      io.emit('security-kick', { username: username.toLowerCase(), activeDevice: deviceId });
+      
       return res.json({ status: 'success' });
     }
     return res.status(401).json({ error: "Invalid PIN" });
@@ -96,8 +101,9 @@ app.post('/api/auth/pin', (req: any, res: any) => {
 
 // --- ZERO-TRUST FILE GATEWAY ---
 const verifyFileAccess = (req: any, res: any, next: any) => {
-  const { user: username, device: deviceId } = req.query;
-  const fileName = req.params.file; // Express handles decoding, removed double-decode bug
+  const username = (req.query.user as string || '').toLowerCase();
+  const deviceId = req.query.device as string || '';
+  const fileName = req.params.file;
 
   const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
   const fileRecord = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
@@ -108,24 +114,28 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
     return next();
   }
 
-  const isTrueAdmin = username === 'System Admin' || (username || '').toLowerCase() === 'veer_dev';
+  const isTrueAdmin = username === 'system admin' || username === 'veer_dev';
   if (!isTrueAdmin) {
     const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
-    const userObj = users[(username || '').toLowerCase()];
-    const now = Date.now();
+    const userObj = users[username];
     
-    // Strict Device & Token Check
-    const hasValidSession = userObj && userObj.currentDevice === deviceId && userObj.sessionExpiresAt && now < userObj.sessionExpiresAt;
-    if (!hasValidSession) return res.status(401).send("Unauthorized. Session Expired or Device Mismatch.");
+    // 🚨 STRICT DEVICE LOCK CHECK (Fixed Chrome Download Error) 🚨
+    // We only check if the device ID matches the database. 
+    // This prevents native browser downloads from failing due to UI idle time.
+    if (!userObj || userObj.currentDevice !== deviceId) {
+        return res.status(401).send("Unauthorized. Device Mismatch. Security Protocol Engaged.");
+    }
 
     if (fileRecord.room === 'Admin Only') return res.status(403).send("Admin Clearance Required");
-    if (fileRecord.room === 'Digital Team' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Digital Team Clearance Required");
-    if (fileRecord.room === 'Sales & Mktg' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Sales Clearance Required");
+    if (fileRecord.room === 'Digital Team' && !APPROVED_TEAM.includes(username)) return res.status(403).send("Digital Team Clearance Required");
+    if (fileRecord.room === 'Sales & Mktg' && !APPROVED_TEAM.includes(username)) return res.status(403).send("Sales Clearance Required");
   }
 
   req.fileRecord = fileRecord;
   next();
 };
+
+
 
 app.get('/preview/:file', verifyFileAccess, (req: any, res: any) => {
   const absolutePath = path.join(UPLOADS_DIR, req.fileRecord.savedAs || req.fileRecord.fileName);
