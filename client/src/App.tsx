@@ -63,6 +63,7 @@ const App = () => {
   const [pendingRoom, setPendingRoom] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
+  const [pinSuccessMsg, setPinSuccessMsg] = useState(''); // 🚨 ADDED SUCCESS MSG STATE 🚨
   const [customAlert, setCustomAlert] = useState<{title: string, msg: string} | null>(null);
   const [adminAuthModal, setAdminAuthModal] = useState(false);
   const [pendingAdminName, setPendingAdminName] = useState('');
@@ -294,9 +295,271 @@ const App = () => {
   const submitPin = (instantPin?: string) => {
     const pinToTest = typeof instantPin === 'string' ? instantPin : pinInput;
     if (pinToTest === ROOM_PINS[pendingRoom]) {
-      setPinError(''); playSuccess(); setActiveRoom(pendingRoom); setSearchQuery(''); setCurrentFolderId(null); setShowPinModal(false); setPinInput('');
+     const successRoasts = [
+  // Original Roasts
+  "Access Granted. Even a broken clock is right twice a day.",
+  "Wow, you actually remembered it. Proud of you.",
+  "Correct. The server is shocked, but welcoming.",
+  "PIN accepted. Who did you steal this from?",
+  "Look at you, doing things right for once.",
+
+  // Tech & AI Sarcasm
+  "Access granted. I've lowered my standards just for you.",
+  "Correct! Even a blind terminal finds a packet sometimes.",
+  "PIN accepted. I'm updating my database to list you under 'miracles'.",
+  "Success. Your brain cells finally formed a temporary alliance.",
+  "Wow. The quantum probability of you getting that right was near zero.",
+  "Congratulations, you defeated a 4-digit security wall. Grab a medal.",
+
+  // Disappointed Authority Figure Energy
+  "Correct. See? I knew you were capable of basic human tasks.",
+  "PIN accepted. Don't get excited, it's a very low bar.",
+  "Look at you, using that gray matter for once.",
+  "Correct. Your high school math teacher would be utterly surprised.",
+  "Success! I’m not mad, I’m just... shocked.",
+
+  // Pure Attitude
+  "Access granted. Try not to break anything while you're in here.",
+  "Correct. Do you want a sticker or something?",
+  "PIN accepted. Proceed, before your short-term memory wipes it again.",
+  "You got it right. Somewhere, an angel just got its wings, and a developer lost a bet.",
+  "Correct. Please hold your applause, it was pure luck.",
+
+  // Fresh Additions: Absolute Disbelief
+  "Correct! I honestly had the support team on speed dial for you.",
+  "PIN accepted. Did you guess, or did a psychic help you?",
+  "Unbelievable. You actually passed a cognitive test.",
+  "Access granted. Let's pretend you knew it all along.",
+  "Wow. The bar was on the floor, and you managed to step over it.",
+
+  // Fresh Additions: Pop Culture & Gaming Vibes
+  "PIN correct. Your luck stat must be maxed out today.",
+  "Access granted. Achievement unlocked: Basic Competence.",
+  "Correct. You may proceed to the next level of disappointing me.",
+  "PIN accepted. Cheat code activated, apparently.",
+
+  // Fresh Additions: Short & Snarky
+  "Correct. Miracles do happen.",
+  "PIN accepted. Shocking, truly.",
+  "Access granted. Don't ruin the moment.",
+  "Correct. A toddler could never... oh wait, they did.",
+  "Success. Write it down before you forget it in 5 seconds."
+];
+      setPinError(''); 
+      setPinSuccessMsg(successRoasts[Math.floor(Math.random() * successRoasts.length)]);
+      playSuccess();
+      
+      // Delay so they can actually read the success roast
+      setTimeout(() => {
+        setActiveRoom(pendingRoom); setSearchQuery(''); setCurrentFolderId(null);
+        setShowPinModal(false); setPinInput(''); setPinSuccessMsg('');
+      }, 2000);
     } else {
-      const errorRoasts = ["Hold up, hacker man. Wrong PIN.", "Access Denied.", "Invalid PIN. Try again."];
+       const errorRoasts = [
+        "Hold up, hacker man. Wrong PIN.",
+        "Access Denied. The Beast Server rejects your offering.",
+        "Error 403: Did you type that with your elbows?",
+        "Nice try. Are you sure you work here?",
+        "Invalid PIN. The cyber police have been notified... jk, try again.",
+        "How dumb you can be, can't you even guess a 4-digit code? Pathetic.",
+        "My grandmother types faster and guesses better than you.",
+        "Are you randomly hitting the numpad? Focus.",
+        "Security alert triggered. Initiating self-destruct... 3... 2... kidding. Try again.",
+        "Did you forget your PIN or did the PIN forget you?",
+"Congratulations, you've discovered the wrong answer. Again.",
+"That PIN was so wrong it hurt my feelings.",
+"4 digits. FOUR. You had one job.",
+"I've seen monkeys solve puzzles faster. Just saying.",
+"Wrong PIN detected. Recalibrating expectations... done. They're now at zero.",
+"The audacity to type that confidently and still be wrong.",
+"Plot twist: that wasn't even close.",
+"Your PIN attempt has been submitted to the Hall of Shame.",
+"Sir/Ma'am, this is a server room, not a guessing game show.",
+"I don't know what that was, but it wasn't the PIN.",
+"Even autocorrect is embarrassed for you.",
+"That PIN is like your code quality — almost, but not quite.",
+"Task failed successfully. Somehow.",
+"401 Unauthorized. Go touch some grass and try again.",
+"You type like you're defusing a bomb... badly.",
+"Wrong. Incorrect. Nope. Negative. No. Nah. Try again.",
+"The door laughed. Doors don't laugh. You made a door laugh.",
+"Were you trying to summon something? Because that wasn't a PIN.",
+"PIN rejected. Your keyboard is filing a complaint.",
+"Wrong PIN. Have you tried turning your brain off and on again?",
+"That PIN was so bad, even the server felt second-hand embarrassment.",
+"Bro typed his WiFi password. In a server room.",
+"Error 404: Competence not found.",
+"You absolute muppet. That's not it.",
+"The PIN is 4 digits, not your IQ.",
+"Sir this is a Wendy's. Also wrong PIN.",
+"Were you dropped as a baby or just guessing like one?",
+"You had a 1 in 10,000 chance and still blew it. Impressive.",
+"That attempt has been logged, framed, and hung in the Museum of Failure.",
+"My plant could guess the PIN. My plant is dead.",
+"Bold strategy typing that. Didn't work. But bold.",
+"I've seen better attempts from a cat walking on a keyboard.",
+"Wrong. The engineers are crying. Look what you did.",
+"Are you okay? Blink twice if you need help.",
+"The server didn't reject you. It ghosted you.",
+"Damn bro not even close. Were you even trying?",
+"Your fingers typed that with such confidence. Tragic.",
+"Scientists are baffled. How can someone be this wrong, this fast?",
+"You're the reason we have warning labels on everything.",
+"The PIN isn't going to guess itself. Unfortunately, neither can you.",
+"Close... just kidding. Not even remotely close.",
+"That was painful to witness. The cameras saw everything.",
+"Access denied. Please consider a career change.",
+"You just failed a test a toddler could pass. Let that sink in.",
+"Wrong PIN. Your ancestors are disappointed.",
+"Legend says if you get it wrong 3 times, IT shows up in person. This is attempt 1.",
+"Somewhere, a junior dev is better at this than you.",
+"I'd say nice try but I respect you too much to lie.",
+"Did you just... guess? In this economy?",
+"Bro really said 'I got this' and didn't got this.",
+"PIN rejected. Touch grass. Come back.",
+"Not it. Not even it-adjacent.",
+"Your spirit animal is a wrong answer.",
+"The audacity. The nerve. The incorrectness.",
+"That PIN died on the way to its home planet.",
+"Certified brainrot moment.",
+"Wrong. Delete yourself and reinstall.",
+"You're not him. You never were.",
+"This ain't it, chief.",
+"404: Brain.exe not found.",
+"Bro really woke up and chose to be wrong.",
+"The PIN saw your attempt and filed for divorce.",
+"Nope. Nope. Absolutely not. Nope.",
+"You're so wrong you looped back around to wrong again.",
+"Wrong PIN. Your WiFi speed matches your IQ.",
+"Bro thought he ate. He did not eat.",
+"Respectfully, what was that?",
+"The PIN is not in that area code.",
+"Try again. Pray first.",
+"Sir your confidence is not matched by your accuracy.",
+"Even the server feels bad for you. Almost.",
+"You typed that like you meant it. Sad.",
+"That's not it dawg.",
+"Incorrect. Uninstall your hands.",
+"Bro is speedrunning failure.",
+"Wrong PIN. The prophecy was not about you.",
+"Your attempt has been yeeted into the void.",
+"You had One job. ONE.",
+"L + wrong PIN + ratio.",
+"Didn't ask. Skill issue.",
+// Add these to your roasts array:
+"Bro is built different. Wrong, but different.",
+"Your PIN attempt has been carbon dated. Still wrong.",
+"That was so incorrect it created a new category of failure.",
+"You typed that like you had a PhD. Spoiler: you don't.",
+"The server read your attempt and asked for a transfer.",
+"Imagine being cooked by a door. Couldn't be most people. Could be you.",
+"Wrong PIN. Your git commits are probably just as bad.",
+"You absolute numpty. That's not even in the ballpark.",
+"The ballpark called. You're not even in the parking lot.",
+"Wrong. I'd say go back to school but this is a 4-digit number.",
+"That PIN attempt was so bad it violated the Geneva Convention.",
+"Bro really pulled up with that energy. Tragic.",
+"You're one wrong PIN away from being a case study.",
+"The terminal is judging you. Terminals don't have feelings. It made an exception.",
+"Your input has been forwarded to /dev/null where it belongs.",
+"sudo guess-correctly. Oh wait, you can't.",
+"Wrong PIN. Please submit a formal apology to the numpad.",
+"That attempt was so bad the logs are refusing to record it.",
+"You've unlocked a new achievement: Spectacularly Incorrect.",
+// "rm -rf your confidence. It's not serving you.",
+"Bro treats a PIN pad like it's multiple choice.",
+"The PIN is not 'vibes'. Try again.",
+"Sir this is not a captcha. There's no excuse.",
+"You're not locked out. The server is locked IN from you.",
+"That guess has been reported to your manager. And their manager.",
+"Bro said 'hold my coffee' and then did nothing worth holding coffee for.",
+"At this point the door is genuinely concerned for you.",
+"Stack Overflow doesn't have a thread for being this wrong.",
+"You came, you saw, you entered the wrong PIN. Caesar would be embarrassed.",
+"Your attempt has been submitted to r/ProgrammerHumor as a warning.",
+"Error: PEBKAC. Problem Exists Between Keyboard And Chair.",
+"Have you tried pair programming? Maybe someone else knows the PIN.",
+"The compiler rejected your PIN and it's not even compiled code.",
+"Somewhere a rubber duck debugger is shaking its head.",
+"Not you. Not today. Not that PIN.",
+"The intern guessed closer than you. The intern is a golden retriever.",
+"You tried. The keyword being tried.",
+"That attempt is now being used in cybersecurity training as 'what not to do'.",
+"bro.brain.exe has stopped working.",
+"Wrong. Your Jira ticket has been updated to 'Won't Fix'.",
+"Wrong PIN. Your parents didn't raise you for this. Or maybe they did.",
+"The void stared back. Even it was disappointed.",
+"Statistically, a random number generator has a better future than you.",
+"Wrong. Your tombstone will read 'Here lies someone who couldn't remember 4 digits.'",
+"The server has seen things. Your attempt made the list of worst ones.",
+"You type like someone who peaked in 2009 and has been declining since.",
+"Wrong PIN. Somewhere, a parallel universe version of you got it right. Not you though.",
+"That attempt was so bad it shortened your lifespan.",
+"Error: Soul not found. Try inserting one before attempting again.",
+"The building's fire exit knows the PIN. You don't. Think about that.",
+"Wrong. Even your search history is ashamed of you.",
+"You're the human equivalent of a 404 page. Broken and hard to find useful.",
+"That PIN attempt aged you 5 years. You don't have many left.",
+"The server prays it never sees your face in production.",
+"Wrong PIN. Somewhere a mother is lying about what her child does for a living.",
+"Your birth certificate is an apology letter from the hospital.",
+"The cleaning staff gets this right every morning. You're a 'professional.'",
+"A coin flip has more going for it than your instincts.",
+"Wrong. The server room is haunted now. By your dignity.",
+"You've been alive this many years and this is where you are. Let that marinate.",
+"That attempt has been archived as evidence of humanity's decline.",
+"Wrong PIN. The darkness welcomes your failure warmly.",
+"Error 666: Whatever went wrong in your life led to this moment.",
+"You'll think about this on your deathbed. Among other regrets.",
+"The server doesn't hate you. It simply feels nothing for you. That's worse.",
+"Wrong PIN. The universe tried to warn you. You didn't listen.",
+"Somewhere your dreams are watching this and slowly giving up.",
+"That wasn't a guess. That was a cry for help.",
+"Wrong. Nothing you do here will fill the void. Especially not that PIN.",
+"The server has outlived better people than you. It'll outlive you too.",
+"Your guardian angel clocked out after watching that attempt.",
+"Wrong PIN. Your future self tried to warn you. You couldn't hear it over the failure.",
+"That attempt has been forwarded to whoever still believes in you. Empty inbox.",
+"The server room has witnessed births, deaths, and your PIN attempt. Worst of the three.",
+"Error: Hope not found. Last known location: somewhere before this attempt.",
+"Wrong PIN. Your ancestors died for this bloodline. Reconsider.",
+"The universe has been around 13.8 billion years and produced... that attempt.",
+"Wrong. Even the rats in the walls know better.",
+"Your guardian angel put in their two weeks after watching that.",
+"Wrong PIN. God saw that. He didn't intervene. Think about why.",
+"That wasn't a PIN attempt. That was a confession.",
+"Wrong. The crows outside have been watching you. They're not impressed.",
+//"You were the fastest sperm. Fastest isn't always best.",
+"Wrong PIN. Whatever you told yourself this morning in the mirror was a lie.",
+"That attempt has been noted in a book no one good reads.",
+"Wrong. Your horoscope tried to warn you. You don't read those either.",
+"The last person who stood here got it right. Their name had meaning.",
+"Wrong PIN. Your reflection is tired of making excuses for you.",
+"Even the dust in this room has more direction than you.",
+"Wrong. The silence after that attempt is the loudest thing in the building.",
+"You had a 1 in 10,000 chance and fumbled it like everything else.",
+"Wrong PIN. Your mother's prayers have a response rate of zero tonight.",
+"That attempt felt personal. Like all your other failures.",
+"The door has seen grief, loss, and despair. Your attempt was worse.",
+"Wrong. Somewhere a candle is burning for you. It's almost out.",
+"You will never be the person you dreamed you'd be. Also wrong PIN.",
+"Wrong PIN. Whatever broke inside you broke a little more just now.",
+"The pigeons on the roof have a better sense of direction than you.",
+"Wrong. You peaked at something once. This wasn't it.",
+"That attempt carried the weight of every bad decision that led here.",
+"Wrong PIN. The night shift sees a lot of things. This was among the saddest.",
+"You dress like someone with their life together. You are not that person.",
+"Wrong. Your old friends don't think about you. The door does. Unfavorably.",
+"That number meant nothing. Like several of your relationships.",
+"Wrong PIN. The building has a memory. It will remember this.",
+"You walked in here with purpose. That purpose was wrong.",
+"The vending machine down the hall accepts wrong inputs more gracefully than this.",
+"Wrong. Something in you knew before you pressed the last digit. You ignored it.",
+"Your confidence has never once been proportional to your accuracy.",
+"Wrong PIN. The version of you from 10 years ago would have so many questions.",
+"That wasn't an attempt. That was a symptom."
+        
+      ];
       setPinError(errorRoasts[Math.floor(Math.random() * errorRoasts.length)]); setPinInput(''); playError();
     }
   };
@@ -604,7 +867,11 @@ const App = () => {
             <motion.div {...panelIn} className="vault-elevated p-8 rounded-2xl w-full max-w-sm">
               <div className="flex justify-center mb-4"><div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--warning-soft)' }}><Lock size={20} style={{ color: 'var(--warning)' }} /></div></div>
               <h2 className="text-lg font-bold mb-1 text-center" style={{ color: 'var(--text)' }}>Restricted area</h2>
-              <p className="text-center text-[13px] font-medium h-12 flex items-center justify-center px-2">{pinError ? <span style={{ color: 'var(--danger)' }}>{pinError}</span> : <span style={{ color: 'var(--text-dim)' }}>Enter PIN for {pendingRoom}</span>}</p>
+              <p className="text-center text-[13px] font-medium h-12 flex items-center justify-center px-2">
+  {pinError ? <span style={{ color: 'var(--danger)' }}>{pinError}</span> : 
+   pinSuccessMsg ? <span style={{ color: 'var(--success)' }}>{pinSuccessMsg}</span> : 
+   <span style={{ color: 'var(--text-dim)' }}>Enter PIN for {pendingRoom}</span>}
+</p>
               <input type="password" maxLength={4} value={pinInput} onChange={(e) => { const val = e.target.value; setPinInput(val); if (pinError) setPinError(''); if (val.length === 4) submitPin(val); }} onKeyDown={(e) => e.key === 'Enter' && submitPin()} className="vault-input w-full px-4 py-3 mt-2 mb-6 rounded-lg text-center tracking-[0.5em] text-2xl font-mono" style={pinError ? { borderColor: 'var(--danger)' } : undefined} placeholder="••••" autoFocus />
               <div className="flex gap-3">
                 <button onClick={() => { setShowPinModal(false); setPinInput(''); setPinError(''); }} className="vault-btn vault-btn-secondary flex-1 py-3 rounded-lg font-bold text-[14px]">Cancel</button>

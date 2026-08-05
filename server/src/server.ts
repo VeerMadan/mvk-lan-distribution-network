@@ -35,6 +35,9 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/upload', uploadRoutes);
 
+//maa ki ankh abh users ko mannually add karu mai harr baar?!
+//TODO: Implement a proper user management system with authentication and authorization.
+
 const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat', 'ranjana'];
 
 // --- SESSION MANAGEMENT (SINGLE DEVICE LOCK) ---
@@ -54,18 +57,12 @@ app.post('/api/auth/check', (req: any, res: any) => {
     return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: username });
   }
 
-  // 15-MINUTE ROLLING SESSION
-  if (user.currentDevice === deviceId) {
-    if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: username });
-    
-    const now = Date.now();
-    if (user.sessionExpiresAt && now < user.sessionExpiresAt) {
-       user.sessionExpiresAt = now + 15 * 60 * 1000; // Extend by 15 mins
-       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
-       return res.json({ status: 'allowed', resolvedName: username });
-    }
+  // 🚨 FIX: ALWAYS FORCE PIN CHALLENGE TO PREVENT LOGIN BYPASS 🚨
+  if (user.pin) {
+     return res.json({ status: 'challenge', resolvedName: username });
   }
-  return res.json({ status: 'challenge', resolvedName: username });
+  
+  return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: username });
 });
 
 app.post('/api/auth/pin', (req: any, res: any) => {
