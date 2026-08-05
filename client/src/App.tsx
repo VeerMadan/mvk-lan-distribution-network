@@ -110,7 +110,25 @@ const App = () => {
     { name: 'Sales & Mktg', icon: <Users size={16} />, locked: true },
     { name: 'Admin Only', icon: <ShieldCheck size={16} />, locked: true },
   ];
-
+// --- VIRTUAL URL ROUTING ---
+  useEffect(() => {
+    if (!isNameSet) return;
+    
+    // Format the URL to look like: /digital-team/folder-name
+    const formattedRoom = activeRoom.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    let newUrl = `/${formattedRoom}`;
+    
+    if (currentFolderId) {
+      const folderRecord = roomItems.find(f => f.savedAs === currentFolderId);
+      if (folderRecord) {
+        const formattedFolder = folderRecord.fileName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        newUrl += `/${formattedFolder}`;
+      }
+    }
+    
+    // Update the browser URL without refreshing the page
+    window.history.pushState({}, '', newUrl);
+  }, [activeRoom, currentFolderId, roomItems, isNameSet]);
   // Dark Mode Engine
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
@@ -189,10 +207,10 @@ const App = () => {
     }
   };
 
-  const attemptRoomJoin = (targetRoom: string) => {
+const attemptRoomJoin = (targetRoom: string) => {
     if (targetRoom === activeRoom) { setIsMobileMenuOpen(false); return; }
     if (ROOM_PINS[targetRoom] && !isAdminSession) { setPendingRoom(targetRoom); setShowPinModal(true); setIsMobileMenuOpen(false); return; }
-    setActiveRoom(targetRoom); setSearchQuery(''); setIsMobileMenuOpen(false); setSelectedFiles([]);
+    setActiveRoom(targetRoom); setSearchQuery(''); setIsMobileMenuOpen(false); setSelectedFiles([]); setCurrentFolderId(null); 
   };
 
   const submitPin = (instantPin?: string) => {
@@ -340,7 +358,6 @@ const App = () => {
     }
     return crumbs;
   };
-
   const handleBatchDownload = async () => {
     if (selectedFiles.length === 0) return;
     setIsBatchDownloading(true);
@@ -349,10 +366,13 @@ const App = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'MVK-Vault-Export.zip');
+
+      const now = new Date(); 
+      const timeStamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
+      link.setAttribute('download', `MVK-Vault-Export_${timeStamp}.zip`);
+
       document.body.appendChild(link);
       link.click();
-      link.remove();
       window.URL.revokeObjectURL(url);
       showToast('Batch archive exported');
       setSelectedFiles([]);
@@ -360,8 +380,33 @@ const App = () => {
       playError(); showToast('Error generating archive');
     } finally {
       setIsBatchDownloading(false);
+    
     }
+
+  
   };
+
+  // const handleBatchDownload = async () => {
+  //   if (selectedFiles.length === 0) return;
+  //   setIsBatchDownloading(true);
+  //   try {
+  //     const response = await axios.post(`${SERVER_URL}/api/download-batch`, { files: selectedFiles }, { responseType: 'blob' });
+  //     const url = window.URL.createObjectURL(new Blob([response.data]));
+  //     const link = document.createElement('a');
+  //     link.href = url;
+  //     link.setAttribute('download', 'MVK-Vault-Export.zip');
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     link.remove();
+  //     window.URL.revokeObjectURL(url);
+  //     showToast('Batch archive exported');
+  //     setSelectedFiles([]);
+  //   } catch (error) {
+  //     playError(); showToast('Error generating archive');
+  //   } finally {
+  //     setIsBatchDownloading(false);
+  //   }
+  // };
 
   const promptBatchDelete = () => {
     if (selectedFiles.length === 0) return;

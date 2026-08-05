@@ -213,7 +213,11 @@ export default function Dashboard(props: any) {
                 const ext = (item.fileName || '').split('.').pop()?.toLowerCase();
                 const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
                 const isVideo = ['mp4', 'webm', 'mov'].includes(ext);
-                const previewUrl = `${SERVER_URL}/preview/${encodeURIComponent(item.savedAs || item.fileName)}`;
+                
+                // SECURED: Inject credentials directly into the request
+                const deviceId = localStorage.getItem('mvk_device_id') || '';
+                const previewUrl = `${SERVER_URL}/preview/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+                const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
 
                 const rail = item.isFolder
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
