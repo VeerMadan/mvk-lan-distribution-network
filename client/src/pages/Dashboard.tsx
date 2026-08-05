@@ -40,6 +40,9 @@ export default function Dashboard(props: any) {
     return matchesSearch && matchesFolder;
   });
 
+  // 🚨 ALWAYS FETCH THE ACTUAL LOCAL DEVICE ID 🚨
+  const localDeviceId = localStorage.getItem('mvk_device_id') || '';
+
   return (
     <>
       <section className="flex-1 overflow-y-auto p-4 md:p-8 pb-[180px] md:pb-[200px] relative no-scrollbar">
@@ -65,7 +68,6 @@ export default function Dashboard(props: any) {
         )}
 
         <div key={activeRoom + (currentFolderId || 'root')} className="w-full max-w-6xl mx-auto animate-fade-up">
-
           {Object.keys(networkUploads).length > 0 && (
             <div className="mb-8 space-y-3">
               <h3 className="vault-mono text-[10px] font-bold tracking-widest uppercase flex items-center gap-2" style={{ color: 'var(--accent)' }}>
@@ -139,6 +141,10 @@ export default function Dashboard(props: any) {
                 const rail = item.isFolder
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
                   : 'rail-none';
+                  
+                // 🚨 BULLETPROOF DOWNLOAD URLS 🚨
+                const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
+                const shareUrl = `${SERVER_URL}/shared/${encodeURIComponent(item.savedAs || item.fileName)}`;
 
                 return (
                   <div
@@ -176,7 +182,7 @@ export default function Dashboard(props: any) {
 
                     <div className={`flex items-center gap-1 transition-opacity ${isSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                       {!item.isFolder && (
-                        <button onClick={(e) => { e.stopPropagation(); handleCopyLink(`${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}`); }}
+                        <button onClick={(e) => { e.stopPropagation(); handleCopyLink(shareUrl); }}
                           className="vault-btn hidden sm:block p-2 rounded-md" style={{ color: 'var(--text-faint)' }}>
                           <Link size={16} />
                         </button>
@@ -193,7 +199,7 @@ export default function Dashboard(props: any) {
                         </button>
                       )}
                       {!item.isFolder && (
-                        <button onClick={(e) => { e.stopPropagation(); triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}`, item.fileName); }}
+                        <button onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName); }}
                           className="vault-btn p-2 rounded-md" style={{ color: 'var(--text)' }}>
                           <Download size={16} />
                         </button>
@@ -214,10 +220,9 @@ export default function Dashboard(props: any) {
                 const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
                 const isVideo = ['mp4', 'webm', 'mov'].includes(ext);
                 
-                // SECURED: Inject credentials directly into the request
-                const deviceId = localStorage.getItem('mvk_device_id') || '';
-                const previewUrl = `${SERVER_URL}/preview/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
-                const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+                // 🚨 BULLETPROOF DOWNLOAD URLS 🚨
+                const previewUrl = `${SERVER_URL}/preview/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
+                const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
 
                 const rail = item.isFolder
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
@@ -241,7 +246,6 @@ export default function Dashboard(props: any) {
                       <Check size={13} className={isSelected ? 'opacity-100 text-white' : 'opacity-0'} strokeWidth={4} />
                     </div>
 
-                    {/* NEW: 16:9 Thumbnail Visualizer Area */}
                     <div className="w-full aspect-video rounded-xl mb-3 overflow-hidden flex items-center justify-center relative transition-transform duration-300 group-hover:scale-[1.02]" style={{ backgroundColor: 'var(--surface-sunken)' }}>
                       {item.isFolder ? (
                          <Folder size={42} style={{ color: 'var(--text-dim)' }} strokeWidth={1.5} />
@@ -258,7 +262,6 @@ export default function Dashboard(props: any) {
                          <IconComp size={42} style={{ color: fp.color }} strokeWidth={1.5} />
                       )}
                       
-                      {/* Hover Overlay for Preview */}
                       {!item.isFolder && checkPreviewable(item.fileName) && (
                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center z-20">
                             <button onClick={(e) => { e.stopPropagation(); openPreview(item); }} className="p-3 rounded-full bg-white/20 backdrop-blur-md text-white hover:bg-white/40 transition-colors shadow-lg">
@@ -268,7 +271,6 @@ export default function Dashboard(props: any) {
                       )}
                     </div>
 
-                    {/* Text Data Area */}
                     <div className="px-1.5 flex flex-col flex-1">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <p className="text-[13.5px] font-bold truncate flex-1" style={{ color: 'var(--text)' }}>{item.fileName}</p>

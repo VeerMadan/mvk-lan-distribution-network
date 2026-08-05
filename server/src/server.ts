@@ -14,6 +14,9 @@ dotenv.config();
 const app = express();
 const httpServer = http.createServer(app);
 
+// 🚨 MOVED TO TOP FOR GLOBAL KILL SIGNAL SCOPE 🚨
+const io = new Server(httpServer, { cors: { origin: '*' }, allowEIO3: true });
+
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const DB_PATH = path.resolve(__dirname, '../../mvk-db.json');
 const USERS_DB_PATH = path.resolve(__dirname, '../../mvk-users.json');
@@ -56,7 +59,6 @@ app.post('/api/auth/check', (req: any, res: any) => {
        return res.json({ status: 'allowed', resolvedName: username });
     }
   }
-  // Device mismatch (logged in elsewhere) OR session expired
   return res.json({ status: 'challenge', resolvedName: username });
 });
 
@@ -85,12 +87,12 @@ app.post('/api/auth/pin', (req: any, res: any) => {
   if (action === 'verify') {
     if (user.pin === pin) {
       // 🚨 INSTANT SINGLE-DEVICE LOCK 🚨
-      const previousDevice = user.currentDevice;
       user.currentDevice = deviceId; 
       user.sessionExpiresAt = Date.now() + 15 * 60 * 1000;
       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
 
-      // 🚨 BROADCAST KILL SIGNAL TO THE OLD DEVICE 🚨
+      // 🚨 BROADCAST KILL SIGNAL TO ALL OTHER DEVICES 🚨
+      console.log(`[AUTH] ${username} logged in from ${deviceId}. Broadcasting kill signal.`);
       io.emit('security-kick', { username: username.toLowerCase(), activeDevice: deviceId });
       
       return res.json({ status: 'success' });
@@ -107,7 +109,10 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
 
   const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
   const fileRecord = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
-  if (!fileRecord) return res.status(404).send("Error 404: Asset missing.");
+  if (!fileRecord) {
+    console.log(`[GATEWAY] 404 Missing File: ${fileName}`);
+    return res.status(404).send("Error 404: Asset missing.");
+  }
 
   if (fileRecord.room === 'General' || fileRecord.room === 'The Drive') {
     req.fileRecord = fileRecord;
@@ -119,10 +124,9 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
     const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
     const userObj = users[username];
     
-    // 🚨 STRICT DEVICE LOCK CHECK (Fixed Chrome Download Error) 🚨
-    // We only check if the device ID matches the database. 
-    // This prevents native browser downloads from failing due to UI idle time.
+    // 🚨 STRICT DEVICE LOCK CHECK 🚨
     if (!userObj || userObj.currentDevice !== deviceId) {
+        console.log(`[SECURITY BLOCK] Blocked download for ${fileName}. Expected: ${userObj?.currentDevice}, Got: ${deviceId}`);
         return res.status(401).send("Unauthorized. Device Mismatch. Security Protocol Engaged.");
     }
 
@@ -134,8 +138,6 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
   req.fileRecord = fileRecord;
   next();
 };
-
-
 
 app.get('/preview/:file', verifyFileAccess, (req: any, res: any) => {
   const absolutePath = path.join(UPLOADS_DIR, req.fileRecord.savedAs || req.fileRecord.fileName);
@@ -149,7 +151,6 @@ app.get('/download/:file', verifyFileAccess, (req: any, res: any) => {
   else res.status(404).send("File purged.");
 });
 
-// --- THE NEWBIE TRAP (SHARE LINK INTERCEPTOR) ---
 app.get('/shared/:file', (req: any, res: any) => {
   const fileName = req.params.file;
   let history: any[] = [];
@@ -158,12 +159,10 @@ app.get('/shared/:file', (req: any, res: any) => {
   
   if (!fileRecord) return res.status(404).send("Asset not found or purged.");
 
-  // Public files bounce directly to download
   if (fileRecord.room === 'General' || fileRecord.room === 'The Drive') {
      return res.redirect('/download/' + encodeURIComponent(fileName));
   }
 
-  // Locked files serve the trap page
   res.send(`
       <html style="background:#0B0D10; color:#E8EAED; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center; padding-top:15%;">
       <head><title>Access Denied</title></head>
@@ -301,7 +300,6 @@ const cleanupUploads = () => {
 };
 setInterval(cleanupUploads, 5 * 1000); 
 
-const io = new Server(httpServer, { cors: { origin: '*' }, allowEIO3: true });
 setupSockets(io);
 
 io.on('connection', (socket) => {

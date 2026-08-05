@@ -564,6 +564,23 @@ const handleSignOut = () => {
     setRoomItems([]);
     setRoomMessages([]);
   };
+  // 🚨 DEDICATED SECURITY KICK LISTENER 🚨
+  useEffect(() => {
+    if (!deviceId || !displayUsername) return;
+    
+    const handleKick = (data: any) => {
+      if (data.username === displayUsername.toLowerCase() && data.activeDevice !== deviceId) {
+         handleSignOut();
+         setCustomAlert({
+           title: 'Session Terminated', 
+           msg: 'Your account was just accessed from another device. For your protection, this local session has been instantly terminated.'
+         });
+      }
+    };
+
+    socket.on('security-kick', handleKick);
+    return () => { socket.off('security-kick', handleKick); };
+  }, [deviceId, displayUsername]);
   // --- RENDER MAIN APPLICATION ---
   return (
     <div
@@ -613,6 +630,7 @@ const handleSignOut = () => {
         </header>
 
         <Dashboard
+        deviceId={deviceId}
           activeRoom={activeRoom} activeUsers={activeUsers} displayUsername={displayUsername} isAdminSession={isAdminSession}
           roomItems={roomItems} currentFolderId={currentFolderId} setCurrentFolderId={setCurrentFolderId}
           searchQuery={searchQuery} setSearchQuery={setSearchQuery} viewMode={viewMode} setViewMode={setViewMode}
