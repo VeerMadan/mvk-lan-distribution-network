@@ -281,7 +281,7 @@ export default function Dashboard(props: any) {
                            </p>
                            {!item.isFolder && (
                                <button
-                                  onClick={(e) => { e.stopPropagation(); triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}`, item.fileName); }}
+                                  onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName); }}
                                   className="vault-btn p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10" 
                                   style={{ color: 'var(--text-dim)' }}
                                >

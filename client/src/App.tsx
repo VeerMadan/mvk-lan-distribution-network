@@ -734,7 +734,7 @@ const handleSignOut = () => {
             ) : (
               <>
                 <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`, contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
-                <button onClick={() => handleCopyLink(`${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Share2 size={15} /> Copy link</button>
+                <button onClick={() => handleCopyLink(`${SERVER_URL}/shared/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Share2 size={15} /> Copy link</button>
               </>
             )}
             {(contextMenu.file.sender === displayUsername || isAdminSession) && (

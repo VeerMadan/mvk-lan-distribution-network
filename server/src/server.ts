@@ -28,8 +28,7 @@ app.use('/api/upload', uploadRoutes);
 
 const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat'];
 
-// --- SESSION MANAGEMENT ---
-// --- SESSION MANAGEMENT ---
+// --- SESSION MANAGEMENT (SINGLE DEVICE LOCK) ---
 app.post('/api/auth/check', (req: any, res: any) => {
   let { username, deviceId } = req.body;
   let attemptName = username.toLowerCase().trim();
@@ -41,26 +40,23 @@ app.post('/api/auth/check', (req: any, res: any) => {
   let user = users[attemptName];
 
   if (!user) {
-    users[attemptName] = { devices: [deviceId], pin: null, displayName: username, sessionExpiresAt: 0 };
+    users[attemptName] = { currentDevice: deviceId, pin: null, displayName: username, sessionExpiresAt: 0 };
     fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
     return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: username });
   }
 
-  if (user.devices.includes(deviceId)) {
+  // 15-MINUTE ROLLING SESSION
+  if (user.currentDevice === deviceId) {
     if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: username });
     
-    // THE 10-MINUTE ROLLING SESSION
     const now = Date.now();
     if (user.sessionExpiresAt && now < user.sessionExpiresAt) {
-       // User is active, extend the session by another 10 minutes
-       user.sessionExpiresAt = now + 10 * 60 * 1000;
+       user.sessionExpiresAt = now + 15 * 60 * 1000; // Extend by 15 mins
        fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
        return res.json({ status: 'allowed', resolvedName: username });
     }
-    
-    // Session expired, demand PIN
-    return res.json({ status: 'challenge', resolvedName: username });
   }
+  // Device mismatch (logged in elsewhere) OR session expired
   return res.json({ status: 'challenge', resolvedName: username });
 });
 
@@ -88,10 +84,9 @@ app.post('/api/auth/pin', (req: any, res: any) => {
 
   if (action === 'verify') {
     if (user.pin === pin) {
-      if (!user.devices.includes(deviceId)) user.devices.push(deviceId);
-      
-      // Start the 10-minute session upon successful PIN entry
-      user.sessionExpiresAt = Date.now() + 10 * 60 * 1000;
+      // BOOT OUT PREVIOUS DEVICE INSTANTLY
+      user.currentDevice = deviceId; 
+      user.sessionExpiresAt = Date.now() + 15 * 60 * 1000;
       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
       return res.json({ status: 'success' });
     }
@@ -102,45 +97,27 @@ app.post('/api/auth/pin', (req: any, res: any) => {
 // --- ZERO-TRUST FILE GATEWAY ---
 const verifyFileAccess = (req: any, res: any, next: any) => {
   const { user: username, device: deviceId } = req.query;
-  const fileName = decodeURIComponent(req.params.file);
+  const fileName = req.params.file; // Express handles decoding, removed double-decode bug
 
   const history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
   const fileRecord = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
   if (!fileRecord) return res.status(404).send("Error 404: Asset missing.");
 
-  // 1. PUBLIC ROOM ROUTING
-  // If the file is in General or The Drive, skip all authentication and serve the file immediately.
   if (fileRecord.room === 'General' || fileRecord.room === 'The Drive') {
     req.fileRecord = fileRecord;
     return next();
   }
 
-  // 2. PRIVATE ROOM ROUTING
   const isTrueAdmin = username === 'System Admin' || (username || '').toLowerCase() === 'veer_dev';
-  
   if (!isTrueAdmin) {
     const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
     const userObj = users[(username || '').toLowerCase()];
     const now = Date.now();
     
-    // Check if they possess a valid, unexpired session token for this device
-    const hasValidSession = userObj && userObj.devices.includes(deviceId) && userObj.sessionExpiresAt && now < userObj.sessionExpiresAt;
-    
-    // The "Newbie" Interceptor Page
-    if (!hasValidSession) {
-        return res.status(401).send(`
-            <html style="background:#0B0D10; color:#E8EAED; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center; padding-top:15%;">
-            <head><title>Access Denied</title></head>
-            <body>
-                <h1 style="color:#D4AF37; font-weight: 800; letter-spacing: -1px; margin-bottom:10px;">RESTRICTED ASSET</h1>
-                <p style="color:#9CA3AF; font-size:18px; margin-bottom:30px;">Oops, login your creds first newbie! 🛑</p>
-                <a href="/" style="color:#14171B; background-color:#D4AF37; text-decoration:none; font-weight: 700; padding:12px 24px; border-radius:8px; display:inline-block; transition: 0.2s;">Return to Console</a>
-            </body>
-            </html>
-        `);
-    }
+    // Strict Device & Token Check
+    const hasValidSession = userObj && userObj.currentDevice === deviceId && userObj.sessionExpiresAt && now < userObj.sessionExpiresAt;
+    if (!hasValidSession) return res.status(401).send("Unauthorized. Session Expired or Device Mismatch.");
 
-    // Secondary Check: Do they belong to the room's department?
     if (fileRecord.room === 'Admin Only') return res.status(403).send("Admin Clearance Required");
     if (fileRecord.room === 'Digital Team' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Digital Team Clearance Required");
     if (fileRecord.room === 'Sales & Mktg' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Sales Clearance Required");
@@ -150,7 +127,6 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
   next();
 };
 
-// Secured Routes
 app.get('/preview/:file', verifyFileAccess, (req: any, res: any) => {
   const absolutePath = path.join(UPLOADS_DIR, req.fileRecord.savedAs || req.fileRecord.fileName);
   if (fs.existsSync(absolutePath)) res.sendFile(absolutePath);
@@ -163,7 +139,33 @@ app.get('/download/:file', verifyFileAccess, (req: any, res: any) => {
   else res.status(404).send("File purged.");
 });
 
-// Batch Download & Delete remain the same below...
+// --- THE NEWBIE TRAP (SHARE LINK INTERCEPTOR) ---
+app.get('/shared/:file', (req: any, res: any) => {
+  const fileName = req.params.file;
+  let history: any[] = [];
+  if (fs.existsSync(DB_PATH)) history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  const fileRecord = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
+  
+  if (!fileRecord) return res.status(404).send("Asset not found or purged.");
+
+  // Public files bounce directly to download
+  if (fileRecord.room === 'General' || fileRecord.room === 'The Drive') {
+     return res.redirect('/download/' + encodeURIComponent(fileName));
+  }
+
+  // Locked files serve the trap page
+  res.send(`
+      <html style="background:#0B0D10; color:#E8EAED; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center; padding-top:15%;">
+      <head><title>Access Denied</title></head>
+      <body>
+          <h1 style="color:#D4AF37; font-weight: 800; letter-spacing: -1px; margin-bottom:10px;">RESTRICTED ASSET</h1>
+          <p style="color:#9CA3AF; font-size:18px; margin-bottom:30px;">Oops, login your creds first newbie! 🛑</p>
+          <a href="/?asset=${encodeURIComponent(fileName)}" style="color:#14171B; background-color:#D4AF37; text-decoration:none; font-weight: 700; padding:12px 24px; border-radius:8px; display:inline-block; transition: 0.2s;">Authenticate to Unlock</a>
+      </body>
+      </html>
+  `);
+});
+
 app.post('/api/download-batch', (req: any, res: any) => {
     const AdmZip = require('adm-zip');
     const zip = new AdmZip();
