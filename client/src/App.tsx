@@ -32,7 +32,7 @@ const playClick = () => playTone(800, 'sine', 0.05, 0.02);
 const playSuccess = () => { playTone(400, 'sine', 0.1, 0.05); setTimeout(() => playTone(600, 'sine', 0.2, 0.05), 100); };
 const playError = () => { playTone(200, 'square', 0.1, 0.05); setTimeout(() => playTone(150, 'square', 0.2, 0.05), 100); };
 
-// Motion presets — small and quiet, no spring/bounce
+// Motion presets
 const fadeIn = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 const panelIn = { initial: { opacity: 0, y: 6, scale: 0.99 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: 6, scale: 0.99 }, transition: { duration: 0.16 } };
 
@@ -110,14 +110,23 @@ const App = () => {
     { name: 'Sales & Mktg', icon: <Users size={16} />, locked: true },
     { name: 'Admin Only', icon: <ShieldCheck size={16} />, locked: true },
   ];
-// --- VIRTUAL URL ROUTING ---
+
+  const handleSignOut = () => {
+    socket.disconnect();
+    setIsNameSet(false);
+    setUsername('');
+    setAuthStep('name');
+    setAuthPin('');
+    setPinErrorText('');
+    setRoomItems([]);
+    setRoomMessages([]);
+  };
+
+  // 🚨 TOP-LEVEL HOOKS (Fixes React Error 310 WSOD) 🚨
   useEffect(() => {
     if (!isNameSet) return;
-    
-    // Format the URL to look like: /digital-team/folder-name
     const formattedRoom = activeRoom.toLowerCase().replace(/[^a-z0-9]/g, '-');
     let newUrl = `/${formattedRoom}`;
-    
     if (currentFolderId) {
       const folderRecord = roomItems.find(f => f.savedAs === currentFolderId);
       if (folderRecord) {
@@ -125,11 +134,9 @@ const App = () => {
         newUrl += `/${formattedFolder}`;
       }
     }
-    
-    // Update the browser URL without refreshing the page
     window.history.pushState({}, '', newUrl);
   }, [activeRoom, currentFolderId, roomItems, isNameSet]);
-  // Dark Mode Engine
+
   useEffect(() => {
     if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -149,6 +156,71 @@ const App = () => {
     if (!id) { id = Math.random().toString(36).substring(2, 15); localStorage.setItem('mvk_device_id', id); }
     setDeviceId(id);
   }, []);
+
+  // 🚨 DEDICATED SECURITY KICK LISTENER (Safely moved to top level) 🚨
+  useEffect(() => {
+    if (!displayUsername || !isNameSet) return; 
+    
+    const handleKick = (data: any) => {
+      const currentActiveDevice = localStorage.getItem('mvk_device_id');
+      if (data.username === displayUsername.toLowerCase() && data.activeDevice !== currentActiveDevice) {
+         handleSignOut();
+         setCustomAlert({
+           title: 'Session Terminated', 
+           msg: 'Your account was accessed from another device. This session has been terminated.'
+         });
+      }
+    };
+
+    socket.on('security-kick', handleKick);
+    return () => { socket.off('security-kick', handleKick); };
+  }, [displayUsername, isNameSet]);
+
+  // --- SOCKET SYNC ---
+  useEffect(() => {
+    if (!isNameSet) return; // 🚨 PREVENTS API SPAM WHILE TYPING 🚨
+
+    axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
+    // Removed /api/check-updates completely to eliminate 404 errors
+
+    const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
+    socket.on('connect', onConnect); socket.on('disconnect', () => setIsOnline(false));
+
+    socket.on('incoming-transfer', (data) => {
+       setRoomItems((prev) => {
+         if (data.room !== activeRoom) return prev;
+         if (prev.some(f => (f.downloadUrl && f.downloadUrl === data.downloadUrl) || (f.isFolder && f.id === data.id))) return prev;
+         return [data, ...prev];
+       });
+       axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed));
+    });
+
+    socket.on('force-db-sync', (freshHistory) => {
+      const validRoomItems = freshHistory.filter((f: any) => f.room === activeRoom && (!f.targetRecipient || f.targetRecipient === 'Everyone' || f.targetRecipient === displayUsername || f.sender === displayUsername));
+      setRoomItems(validRoomItems);
+    });
+
+    socket.on('storage-update', (newSize) => setStorageUsed(newSize));
+    socket.on('file-deleted', (deletedIdentifier) => {
+      setRoomItems((prev) => prev.filter(item => item.fileName !== deletedIdentifier && item.savedAs !== deletedIdentifier));
+      setSelectedFiles(prev => prev.filter(id => id !== deletedIdentifier));
+    });
+    socket.on('chat-history', (history) => setRoomMessages(history || []));
+    socket.on('new-chat-message', (msg) => setRoomMessages((prev) => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
+    socket.on('room-users-update', (users) => setActiveUsers(users));
+    socket.on('network-upload-progress', (data) => setNetworkUploads(prev => ({ ...prev, [data.id]: data })));
+    socket.on('network-upload-complete', (uploadId) => setNetworkUploads(prev => { const newUploads = { ...prev }; delete newUploads[uploadId]; return newUploads; }));
+
+    if (socket.connected) onConnect();
+
+    return () => {
+      socket.off('connect'); socket.off('disconnect'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete');
+    };
+  }, [activeRoom, displayUsername, isNameSet]);
+
+  useEffect(() => {
+    if (isOnline && isNameSet) { setRoomItems([]); setRoomMessages([]); setSelectedFiles([]); socket.emit('join-department', { room: activeRoom, username: displayUsername }); socket.emit('request-master-sync'); }
+  }, [activeRoom, isOnline, isNameSet, displayUsername]);
 
   // --- AUTHENTICATION API ---
   const handleNameLogin = async (e: React.FormEvent) => {
@@ -207,7 +279,7 @@ const App = () => {
     }
   };
 
-const attemptRoomJoin = (targetRoom: string) => {
+  const attemptRoomJoin = (targetRoom: string) => {
     if (targetRoom === activeRoom) { setIsMobileMenuOpen(false); return; }
     if (ROOM_PINS[targetRoom] && !isAdminSession) { setPendingRoom(targetRoom); setShowPinModal(true); setIsMobileMenuOpen(false); return; }
     setActiveRoom(targetRoom); setSearchQuery(''); setIsMobileMenuOpen(false); setSelectedFiles([]); setCurrentFolderId(null); 
@@ -232,60 +304,6 @@ const attemptRoomJoin = (targetRoom: string) => {
       setPinInput(''); playError();
     }
   };
-
-  // --- SOCKET SYNC ---
-  useEffect(() => {
-    axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed)).catch(() => {});
-    axios.get(`${SERVER_URL}/api/check-updates`).then(res => { if (res.data.updateAvailable) { setHasUpdate(true); setCommitsBehind(res.data.commits); } }).catch(() => {});
-
-    const onConnect = () => { setIsOnline(true); setIsConnecting(false); setIsNameSet(true); };
-    socket.on('connect', onConnect); socket.on('disconnect', () => setIsOnline(false));
-
-    socket.on('incoming-transfer', (data) => {
-      // 🚨 LISTEN FOR THE REMOTE KILL SIGNAL 🚨
-    socket.on('security-kick', (data) => {
-      if (data.username === displayUsername.toLowerCase() && data.activeDevice !== deviceId) {
-         handleSignOut();
-         setCustomAlert({
-           title: 'Session Terminated', 
-           msg: 'Your account was just accessed from another device. For your protection, this local session has been instantly terminated.'
-         });
-      }
-    });
-       setRoomItems((prev) => {
-         if (data.room !== activeRoom) return prev;
-         if (prev.some(f => (f.downloadUrl && f.downloadUrl === data.downloadUrl) || (f.isFolder && f.id === data.id))) return prev;
-         return [data, ...prev];
-       });
-       axios.get(`${SERVER_URL}/api/storage`).then(res => setStorageUsed(res.data.storageUsed));
-    });
-
-    socket.on('force-db-sync', (freshHistory) => {
-      const validRoomItems = freshHistory.filter((f: any) => f.room === activeRoom && (!f.targetRecipient || f.targetRecipient === 'Everyone' || f.targetRecipient === displayUsername || f.sender === displayUsername));
-      setRoomItems(validRoomItems);
-    });
-
-    socket.on('storage-update', (newSize) => setStorageUsed(newSize));
-    socket.on('file-deleted', (deletedIdentifier) => {
-      setRoomItems((prev) => prev.filter(item => item.fileName !== deletedIdentifier && item.savedAs !== deletedIdentifier));
-      setSelectedFiles(prev => prev.filter(id => id !== deletedIdentifier));
-    });
-    socket.on('chat-history', (history) => setRoomMessages(history || []));
-    socket.on('new-chat-message', (msg) => setRoomMessages((prev) => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
-    socket.on('room-users-update', (users) => setActiveUsers(users));
-    socket.on('network-upload-progress', (data) => setNetworkUploads(prev => ({ ...prev, [data.id]: data })));
-    socket.on('network-upload-complete', (uploadId) => setNetworkUploads(prev => { const newUploads = { ...prev }; delete newUploads[uploadId]; return newUploads; }));
-
-    if (socket.connected) onConnect();
-
-    return () => {
-      socket.off('connect'); socket.off('disconnect'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete');
-    };
-  }, [activeRoom, username, displayUsername]);
-
-  useEffect(() => {
-    if (isOnline && isNameSet) { setRoomItems([]); setRoomMessages([]); setSelectedFiles([]); socket.emit('join-department', { room: activeRoom, username: displayUsername }); socket.emit('request-master-sync'); }
-  }, [activeRoom, isOnline, isNameSet, displayUsername]);
 
   // --- ACTIONS ---
   const triggerDownload = (e: React.MouseEvent, url: string, fileName: string) => {
@@ -368,6 +386,7 @@ const attemptRoomJoin = (targetRoom: string) => {
     }
     return crumbs;
   };
+
   const handleBatchDownload = async () => {
     if (selectedFiles.length === 0) return;
     setIsBatchDownloading(true);
@@ -390,33 +409,8 @@ const attemptRoomJoin = (targetRoom: string) => {
       playError(); showToast('Error generating archive');
     } finally {
       setIsBatchDownloading(false);
-    
     }
-
-  
   };
-
-  // const handleBatchDownload = async () => {
-  //   if (selectedFiles.length === 0) return;
-  //   setIsBatchDownloading(true);
-  //   try {
-  //     const response = await axios.post(`${SERVER_URL}/api/download-batch`, { files: selectedFiles }, { responseType: 'blob' });
-  //     const url = window.URL.createObjectURL(new Blob([response.data]));
-  //     const link = document.createElement('a');
-  //     link.href = url;
-  //     link.setAttribute('download', 'MVK-Vault-Export.zip');
-  //     document.body.appendChild(link);
-  //     link.click();
-  //     link.remove();
-  //     window.URL.revokeObjectURL(url);
-  //     showToast('Batch archive exported');
-  //     setSelectedFiles([]);
-  //   } catch (error) {
-  //     playError(); showToast('Error generating archive');
-  //   } finally {
-  //     setIsBatchDownloading(false);
-  //   }
-  // };
 
   const promptBatchDelete = () => {
     if (selectedFiles.length === 0) return;
@@ -554,36 +548,7 @@ const attemptRoomJoin = (targetRoom: string) => {
       </div>
     );
   }
-const handleSignOut = () => {
-    socket.disconnect();
-    setIsNameSet(false);
-    setUsername('');
-    setAuthStep('name');
-    setAuthPin('');
-    setPinErrorText('');
-    setRoomItems([]);
-    setRoomMessages([]);
-  };
- // 🚨 DEDICATED SECURITY KICK LISTENER (STALE-STATE PROOF) 🚨
-  useEffect(() => {
-    if (!displayUsername) return; // Removed the missing deviceId variable
-    
-    const handleKick = (data: any) => {
-      const currentActiveDevice = localStorage.getItem('mvk_device_id');
-      const currentUser = displayUsername || ''; 
-      
-      if (data.username === currentUser.toLowerCase() && data.activeDevice !== currentActiveDevice) {
-         handleSignOut();
-         setCustomAlert({
-           title: 'Session Terminated', 
-           msg: 'Your account was accessed from another device. This session has been terminated.'
-         });
-      }
-    };
 
-    socket.on('security-kick', handleKick);
-    return () => { socket.off('security-kick', handleKick); };
-  }, [displayUsername]);
   // --- RENDER MAIN APPLICATION ---
   return (
     <div
@@ -633,7 +598,6 @@ const handleSignOut = () => {
         </header>
 
         <Dashboard
-        
           activeRoom={activeRoom} activeUsers={activeUsers} displayUsername={displayUsername} isAdminSession={isAdminSession}
           roomItems={roomItems} currentFolderId={currentFolderId} setCurrentFolderId={setCurrentFolderId}
           searchQuery={searchQuery} setSearchQuery={setSearchQuery} viewMode={viewMode} setViewMode={setViewMode}
@@ -647,7 +611,6 @@ const handleSignOut = () => {
       </main>
 
       {/* --- GLOBAL MODALS & OVERLAYS --- */}
-
       <AnimatePresence>
         {isDragging && storageUsed < STORAGE_LIMIT && (
           <motion.div {...fadeIn} className="fixed inset-0 z-[500] flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'var(--accent-soft)', border: `2px dashed var(--accent)` }}>
@@ -764,7 +727,7 @@ const handleSignOut = () => {
               <button onClick={() => setCurrentFolderId(contextMenu.file.savedAs)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><FolderPlus size={15} /> Open folder</button>
             ) : (
               <>
-                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`, contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
+                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(deviceId)}`, contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
                 <button onClick={() => handleCopyLink(`${SERVER_URL}/shared/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Share2 size={15} /> Copy link</button>
               </>
             )}
@@ -864,7 +827,6 @@ const handleSignOut = () => {
       </div>
     </div>
   );
-  
 };
 
 export default App;
