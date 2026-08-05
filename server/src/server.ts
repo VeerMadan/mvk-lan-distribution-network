@@ -32,32 +32,75 @@ if (!fs.existsSync(DB_PATH)) fs.writeFileSync(DB_PATH, JSON.stringify([]));
 if (!fs.existsSync(USERS_DB_PATH)) fs.writeFileSync(USERS_DB_PATH, JSON.stringify({}));
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use('/api/upload', uploadRoutes);
 
-//maa ki ankh abh users ko mannually add karu mai harr baar?!
-//TODO: Implement a proper user management system with authentication and authorization.
+// --- GLOBAL SECRETS ---
+const PEPPER = 'VeeRM_Audio_Vault_Protocol_99';
+const MASTER_ADMIN_HASH = 'e01fa56ac1cc8394c6f1e7d5361eaee40274438a5f5bca043f2528354dc785c5';
 
-const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat', 'ranjana'];
+// --- OVERLORD ADMIN MIDDLEWARE ---
+const verifyAdmin = (req: any, res: any, next: any) => {
+  const adminKey = req.headers['x-overlord-key'];
+  if (!adminKey) return res.status(401).json({ error: "Unauthorized: Missing Overlord Clearance" });
+  
+  const attemptHash = crypto.createHmac('sha256', PEPPER).update(adminKey).digest('hex');
+  if (attemptHash !== MASTER_ADMIN_HASH) return res.status(403).json({ error: "Access Denied: Invalid Master Key" });
+  
+  next();
+};
 
-// --- SESSION MANAGEMENT (SINGLE DEVICE LOCK) ---
+// --- ADMIN API SUITE (DASHBOARD ENDPOINTS) ---
+app.get('/api/admin/users', verifyAdmin, (req: any, res: any) => {
+  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
+  res.json(users);
+});
+
+app.post('/api/admin/users/update', verifyAdmin, (req: any, res: any) => {
+  const { targetUser, updates } = req.body;
+  const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
+  if (!users[targetUser]) return res.status(404).json({ error: "User not found in matrix" });
+  
+  users[targetUser] = { ...users[targetUser], ...updates };
+  fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+  
+  // Broadcast live permission sync to force target device to update
+  io.emit('force-permission-sync', { username: targetUser, clearances: users[targetUser].allowedRooms });
+  res.json({ success: true });
+});
+
+app.post('/api/admin/chaos-protocol', verifyAdmin, (req: any, res: any) => {
+  const { targetUser, prankType } = req.body;
+  io.emit('execute-chaos', { target: targetUser, payload: prankType });
+  res.json({ success: true, message: `Chaos payload '${prankType}' deployed to ${targetUser}` });
+});
+
+// --- SESSION MANAGEMENT & USER MATRIX ---
 app.post('/api/auth/check', (req: any, res: any) => {
   let { username, deviceId } = req.body;
   let attemptName = username.toLowerCase().trim();
 
   if (attemptName === 'veer_dev') return res.json({ status: 'challenge', resolvedName: 'System Admin' });
-  if (!APPROVED_TEAM.includes(attemptName)) return res.status(403).json({ error: "Access Denied: You are not authorized." });
 
   const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
   let user = users[attemptName];
 
   if (!user) {
-    users[attemptName] = { currentDevice: deviceId, pin: null, displayName: username, sessionExpiresAt: 0 };
+    // Scaffold new user in the Matrix (Default: No Room Clearances)
+    users[attemptName] = { 
+      currentDevice: deviceId, 
+      pin: null, 
+      displayName: username, 
+      sessionExpiresAt: 0,
+      role: 'user',
+      allowedRooms: [], // Determines which rooms bypass the PIN
+      isMuted: false,
+      activityLog: [{ action: 'Account Created', timestamp: Date.now(), ip: req.ip }]
+    };
     fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
     return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: username });
   }
 
-  // 🚨 FIX: ALWAYS FORCE PIN CHALLENGE TO PREVENT LOGIN BYPASS 🚨
   if (user.pin) {
      return res.json({ status: 'challenge', resolvedName: username });
   }
@@ -67,12 +110,11 @@ app.post('/api/auth/check', (req: any, res: any) => {
 
 app.post('/api/auth/pin', (req: any, res: any) => {
   const { username, deviceId, pin, action } = req.body;
+  
   if (username.toLowerCase() === 'veer_dev') {
     if (action === 'verify') {
-      const pepper = 'VeeRM_Audio_Vault_Protocol_99';
-      const attemptHash = crypto.createHmac('sha256', pepper).update(pin).digest('hex');
-      const MASTER_ADMIN_HASH = 'e01fa56ac1cc8394c6f1e7d5361eaee40274438a5f5bca043f2528354dc785c5';
-      if (attemptHash === MASTER_ADMIN_HASH) return res.json({ status: 'success', isAdmin: true });
+      const attemptHash = crypto.createHmac('sha256', PEPPER).update(pin).digest('hex');
+      if (attemptHash === MASTER_ADMIN_HASH) return res.json({ status: 'success', isAdmin: true, allowedRooms: ['*'] });
       return res.status(401).json({ error: "Access Denied" });
     }
     return res.status(400).json({ error: "Admin locked." });
@@ -89,16 +131,21 @@ app.post('/api/auth/pin', (req: any, res: any) => {
 
   if (action === 'verify') {
     if (user.pin === pin) {
-      // 🚨 INSTANT SINGLE-DEVICE LOCK 🚨
       user.currentDevice = deviceId; 
       user.sessionExpiresAt = Date.now() + 15 * 60 * 1000;
+      
+      // Update User Activity Log
+      if (!user.activityLog) user.activityLog = [];
+      user.activityLog.unshift({ action: 'Secure Login', timestamp: Date.now(), device: deviceId });
+      if (user.activityLog.length > 30) user.activityLog.pop(); // Keep log clean (last 30 actions)
+
       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
 
-      // 🚨 BROADCAST KILL SIGNAL TO ALL OTHER DEVICES 🚨
       console.log(`[AUTH] ${username} logged in from ${deviceId}. Broadcasting kill signal.`);
       io.emit('security-kick', { username: username.toLowerCase(), activeDevice: deviceId });
       
-      return res.json({ status: 'success' });
+      // Send allowedRooms back to frontend so it can bypass PINs dynamically
+      return res.json({ status: 'success', allowedRooms: user.allowedRooms || [] });
     }
     return res.status(401).json({ error: "Invalid PIN" });
   }
@@ -123,19 +170,28 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
   }
 
   const isTrueAdmin = username === 'system admin' || username === 'veer_dev';
+  
   if (!isTrueAdmin) {
     const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
     const userObj = users[username];
     
-    // 🚨 STRICT DEVICE LOCK CHECK 🚨
     if (!userObj || userObj.currentDevice !== deviceId) {
-        console.log(`[SECURITY BLOCK] Blocked download for ${fileName}. Expected: ${userObj?.currentDevice}, Got: ${deviceId}`);
         return res.status(401).send("Unauthorized. Device Mismatch. Security Protocol Engaged.");
     }
 
     if (fileRecord.room === 'Admin Only') return res.status(403).send("Admin Clearance Required");
-    if (fileRecord.room === 'Digital Team' && !APPROVED_TEAM.includes(username)) return res.status(403).send("Digital Team Clearance Required");
-    if (fileRecord.room === 'Sales & Mktg' && !APPROVED_TEAM.includes(username)) return res.status(403).send("Sales Clearance Required");
+    
+    // Dynamic Room Check instead of hardcoded APPROVED_TEAM
+    const userClearances = userObj.allowedRooms || [];
+    if (!userClearances.includes(fileRecord.room)) {
+        return res.status(403).send(`${fileRecord.room} Clearance Required`);
+    }
+
+    // Log the file download in the user's matrix profile
+    if (!userObj.activityLog) userObj.activityLog = [];
+    userObj.activityLog.unshift({ action: `Downloaded: ${fileRecord.fileName}`, timestamp: Date.now() });
+    if (userObj.activityLog.length > 30) userObj.activityLog.pop();
+    fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
   }
 
   req.fileRecord = fileRecord;
