@@ -29,6 +29,7 @@ app.use('/api/upload', uploadRoutes);
 const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat'];
 
 // --- SESSION MANAGEMENT ---
+// --- SESSION MANAGEMENT ---
 app.post('/api/auth/check', (req: any, res: any) => {
   let { username, deviceId } = req.body;
   let attemptName = username.toLowerCase().trim();
@@ -40,14 +41,24 @@ app.post('/api/auth/check', (req: any, res: any) => {
   let user = users[attemptName];
 
   if (!user) {
-    users[attemptName] = { devices: [deviceId], pin: null, displayName: username };
+    users[attemptName] = { devices: [deviceId], pin: null, displayName: username, sessionExpiresAt: 0 };
     fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
     return res.json({ status: 'new_user', requiresPinSetup: true, resolvedName: username });
   }
 
   if (user.devices.includes(deviceId)) {
     if (!user.pin) return res.json({ status: 'allowed', requiresPinSetup: true, resolvedName: username });
-    // SECURED: Force PIN challenge on every new session/reload (5-minute idle bypass removed)
+    
+    // THE 10-MINUTE ROLLING SESSION
+    const now = Date.now();
+    if (user.sessionExpiresAt && now < user.sessionExpiresAt) {
+       // User is active, extend the session by another 10 minutes
+       user.sessionExpiresAt = now + 10 * 60 * 1000;
+       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
+       return res.json({ status: 'allowed', resolvedName: username });
+    }
+    
+    // Session expired, demand PIN
     return res.json({ status: 'challenge', resolvedName: username });
   }
   return res.json({ status: 'challenge', resolvedName: username });
@@ -78,6 +89,9 @@ app.post('/api/auth/pin', (req: any, res: any) => {
   if (action === 'verify') {
     if (user.pin === pin) {
       if (!user.devices.includes(deviceId)) user.devices.push(deviceId);
+      
+      // Start the 10-minute session upon successful PIN entry
+      user.sessionExpiresAt = Date.now() + 10 * 60 * 1000;
       fs.writeFileSync(USERS_DB_PATH, JSON.stringify(users, null, 2));
       return res.json({ status: 'success' });
     }
@@ -94,17 +108,39 @@ const verifyFileAccess = (req: any, res: any, next: any) => {
   const fileRecord = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
   if (!fileRecord) return res.status(404).send("Error 404: Asset missing.");
 
+  // 1. PUBLIC ROOM ROUTING
+  // If the file is in General or The Drive, skip all authentication and serve the file immediately.
+  if (fileRecord.room === 'General' || fileRecord.room === 'The Drive') {
+    req.fileRecord = fileRecord;
+    return next();
+  }
+
+  // 2. PRIVATE ROOM ROUTING
   const isTrueAdmin = username === 'System Admin' || (username || '').toLowerCase() === 'veer_dev';
   
   if (!isTrueAdmin) {
     const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
     const userObj = users[(username || '').toLowerCase()];
+    const now = Date.now();
     
-    // Nuke the request if the device ID is forged or missing
-    if (!userObj || !userObj.devices.includes(deviceId)) {
-        return res.status(401).send("Unauthorized Device. Nice try.");
+    // Check if they possess a valid, unexpired session token for this device
+    const hasValidSession = userObj && userObj.devices.includes(deviceId) && userObj.sessionExpiresAt && now < userObj.sessionExpiresAt;
+    
+    // The "Newbie" Interceptor Page
+    if (!hasValidSession) {
+        return res.status(401).send(`
+            <html style="background:#0B0D10; color:#E8EAED; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center; padding-top:15%;">
+            <head><title>Access Denied</title></head>
+            <body>
+                <h1 style="color:#D4AF37; font-weight: 800; letter-spacing: -1px; margin-bottom:10px;">RESTRICTED ASSET</h1>
+                <p style="color:#9CA3AF; font-size:18px; margin-bottom:30px;">Oops, login your creds first newbie! 🛑</p>
+                <a href="/" style="color:#14171B; background-color:#D4AF37; text-decoration:none; font-weight: 700; padding:12px 24px; border-radius:8px; display:inline-block; transition: 0.2s;">Return to Console</a>
+            </body>
+            </html>
+        `);
     }
-    // Block access to locked rooms
+
+    // Secondary Check: Do they belong to the room's department?
     if (fileRecord.room === 'Admin Only') return res.status(403).send("Admin Clearance Required");
     if (fileRecord.room === 'Digital Team' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Digital Team Clearance Required");
     if (fileRecord.room === 'Sales & Mktg' && !APPROVED_TEAM.includes((username || '').toLowerCase())) return res.status(403).send("Sales Clearance Required");
