@@ -1,4 +1,4 @@
-import { Search, CheckSquare, List, LayoutGrid, Folder, FileText, Film, FileArchive, FileImage, Headphones, Code, Check, Link, Trash2, Eye, Download, Activity, FolderPlus, FilePlus, FolderUp, X, Lock } from 'lucide-react';
+import { Search, CheckSquare, List, LayoutGrid, Folder, FileText, Film, FileArchive, FileImage, Headphones, Code, Check, Link, Trash2, Eye, Download, Activity, FolderPlus, FilePlus, FolderUp, X, Lock, Clock, Share2 } from 'lucide-react';
 
 const SERVER_URL = window.location.origin;
 
@@ -28,7 +28,7 @@ export default function Dashboard(props: any) {
     selectedFiles, setSelectedFiles, networkUploads, uploadProgress,
     deletingItemIds, handleBatchDownload, promptBatchDelete, isBatchDownloading,
     openContextMenu, toggleFileSelection, checkPreviewable, openPreview,
-    triggerDownload, handleCopyLink, promptDelete,
+    triggerDownload, handleCopyLink, promptDelete, handleExtendExpiry,
     setShowFolderModal, storageUsed, STORAGE_LIMIT,
     fileInputRef, folderInputRef, handleFileSelect
   } = props;
@@ -40,7 +40,7 @@ export default function Dashboard(props: any) {
     return matchesSearch && matchesFolder;
   });
 
-  // 🚨 ALWAYS FETCH THE ACTUAL LOCAL DEVICE ID 🚨
+  // 🚨 SAFELY PULL DEVICE ID FOR DOWNLOADS 🚨
   const localDeviceId = localStorage.getItem('mvk_device_id') || '';
 
   return (
@@ -142,7 +142,6 @@ export default function Dashboard(props: any) {
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
                   : 'rail-none';
                   
-                // 🚨 BULLETPROOF DOWNLOAD URLS 🚨
                 const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
                 const shareUrl = `${SERVER_URL}/shared/${encodeURIComponent(item.savedAs || item.fileName)}`;
 
@@ -220,9 +219,9 @@ export default function Dashboard(props: any) {
                 const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
                 const isVideo = ['mp4', 'webm', 'mov'].includes(ext);
                 
-                // 🚨 BULLETPROOF DOWNLOAD URLS 🚨
                 const previewUrl = `${SERVER_URL}/preview/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
                 const downloadUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(localDeviceId)}`;
+                const shareUrl = `${SERVER_URL}/shared/${encodeURIComponent(item.savedAs || item.fileName)}`;
 
                 const rail = item.isFolder
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
