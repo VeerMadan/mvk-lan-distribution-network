@@ -1,5 +1,5 @@
 import express from 'express';
-import http from 'http';
+import https from 'https';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
@@ -12,10 +12,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const httpServer = http.createServer(app);
+
+// 🚨 LOAD YOUR FORGED SSL CERTIFICATES 🚨
+const privateKey = fs.readFileSync(path.resolve(__dirname, '../key.pem'), 'utf8');
+const certificate = fs.readFileSync(path.resolve(__dirname, '../cert.pem'), 'utf8');
+const credentials = { key: privateKey, cert: certificate };
+
+const httpsServer = https.createServer(credentials, app);
 
 // 🚨 MOVED TO TOP FOR GLOBAL KILL SIGNAL SCOPE 🚨
-const io = new Server(httpServer, { cors: { origin: '*' }, allowEIO3: true });
+const io = new Server(httpsServer, { cors: { origin: '*' }, allowEIO3: true });
 
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const DB_PATH = path.resolve(__dirname, '../../mvk-db.json');
@@ -338,4 +344,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = Number(process.env.PORT || 3000);
-httpServer.listen(PORT, '0.0.0.0', () => console.log(`🚀 MVK Beast Server broadcasting globally on port ${PORT}`));
+httpsServer.listen(PORT, '0.0.0.0', () => console.log(`🚀 MVK Beast Server securely broadcasting globally over HTTPS on port ${PORT}`));
