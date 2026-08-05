@@ -35,7 +35,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/upload', uploadRoutes);
 
-const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat'];
+const APPROVED_TEAM = ['likhith', 'manoj', 'veer', 'sanat', 'ranjana'];
 
 // --- SESSION MANAGEMENT (SINGLE DEVICE LOCK) ---
 app.post('/api/auth/check', (req: any, res: any) => {
