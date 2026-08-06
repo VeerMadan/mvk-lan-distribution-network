@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { ShieldAlert, Users, Activity, Lock, Skull, Terminal, RefreshCw, Radio } from 'lucide-react';
-const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
-
+const SERVER_URL = `https://127.0.0.1:3000`;
 const App = () => {
   const [adminKey, setAdminKey] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
