@@ -225,11 +225,34 @@ const App = () => {
     socket.on('room-users-update', (users) => setActiveUsers(users));
     socket.on('network-upload-progress', (data) => setNetworkUploads(prev => ({ ...prev, [data.id]: data })));
     socket.on('network-upload-complete', (uploadId) => setNetworkUploads(prev => { const newUploads = { ...prev }; delete newUploads[uploadId]; return newUploads; }));
-
+// 🚨 CHAOS PROTOCOL LISTENER 🚨
+    socket.on('execute-chaos', (data) => {
+      if (data.target.toLowerCase() === displayUsername.toLowerCase()) {
+        switch (data.payload) {
+          case 'flip':
+            document.body.style.transition = 'transform 1.5s ease-in-out';
+            document.body.style.transform = 'rotate(180deg)';
+            setTimeout(() => { document.body.style.transform = 'none'; }, 15000); // Reverts after 15 seconds
+            break;
+          case 'ghost':
+            setChatMessage('I AM BEING WATCHED. THE VAULT IS ALIVE.');
+            break;
+          case 'rickroll':
+            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+            break;
+          case 'purge':
+            setCustomAlert({ 
+              title: 'CRITICAL SYSTEM FAILURE', 
+              msg: 'FATAL ERROR: OVERHEATING DETECTED. FORMATTING LOCAL DRIVE C:\\ TO PREVENT FIRE... PLEASE DO NOT TURN OFF YOUR COMPUTER.' 
+            });
+            break;
+        }
+      }
+    });
     if (socket.connected) onConnect();
 
     return () => {
-      socket.off('connect'); socket.off('disconnect'); socket.off('connect_error'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete');
+      socket.off('connect'); socket.off('disconnect'); socket.off('connect_error'); socket.off('incoming-transfer'); socket.off('force-db-sync'); socket.off('storage-update'); socket.off('file-deleted'); socket.off('chat-history'); socket.off('new-chat-message'); socket.off('room-users-update'); socket.off('network-upload-progress'); socket.off('network-upload-complete'); socket.off('execute-chaos');
     };
   }, [activeRoom, displayUsername, isNameSet]);
 
