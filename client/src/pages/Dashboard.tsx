@@ -125,13 +125,12 @@ export default function Dashboard(props: any) {
             </div>
           ) : viewMode === 'list' ? (
             <div className="vault-panel rounded-xl overflow-hidden shadow-sm">
-              <div className="hidden sm:flex items-center px-5 py-3 vault-mono text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--text-faint)', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
-                <div className="w-9" />
-                <div className="flex-1">Name</div>
-                <div className="w-28">Size</div>
-                <div className="w-32">Sender</div>
-                <div className="w-24 text-right pr-2">Actions</div>
-              </div>
+             <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>
+  <div className="col-span-6 text-left">Name</div>
+  <div className="col-span-2 text-right">Size</div>
+  <div className="col-span-2 text-left pl-4">Sender</div> {/* 🚨 Left aligned with a little padding */}
+  <div className="col-span-2 text-right">Actions</div>
+</div>
 
               {filteredItems.map((item: any, idx: number) => {
                 const fp = item.isFolder ? { icon: Folder, color: 'var(--text)' } : getFileProps(item.fileName);
@@ -149,36 +148,44 @@ export default function Dashboard(props: any) {
                     key={idx}
                     style={{ animationDelay: `${idx * 0.015}s`, backgroundColor: isSelected ? 'var(--accent-soft)' : undefined }}
                     onContextMenu={(e) => openContextMenu(e, item)}
-                    className={`vault-row ${rail} flex items-center justify-between group relative px-4 sm:px-5 py-3 ${deletingItemIds.includes(item.savedAs || item.fileName) ? 'anim-purge' : 'animate-row-in'}`}
+                    className={`vault-row ${rail} grid grid-cols-12 items-center gap-4 group relative px-4 sm:px-5 py-3 ${deletingItemIds.includes(item.savedAs || item.fileName) ? 'anim-purge' : 'animate-row-in'}`}
                   >
-                    <div
-                      onClick={(e) => toggleFileSelection(e, item.savedAs || item.fileName)}
-                      className="w-4 h-4 flex items-center justify-center rounded border shrink-0 mr-4 cursor-pointer transition-all"
-                      style={isSelected
-                        ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }
-                        : { borderColor: 'var(--border-strong)', opacity: 0 }}
-                    >
-                      <Check size={11} className={isSelected ? 'opacity-100 text-white' : 'opacity-0'} strokeWidth={4} />
-                    </div>
+                    {/* NAME + CHECKBOX (col-span-8 on mobile, col-span-6 on desktop) */}
+                    <div className="col-span-8 sm:col-span-6 flex items-center gap-3.5 overflow-hidden">
+                      <div
+                        onClick={(e) => toggleFileSelection(e, item.savedAs || item.fileName)}
+                        className="w-4 h-4 flex items-center justify-center rounded border shrink-0 cursor-pointer transition-all"
+                        style={isSelected
+                          ? { backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }
+                          : { borderColor: 'var(--border-strong)', opacity: 0 }}
+                      >
+                        <Check size={11} className={isSelected ? 'opacity-100 text-white' : 'opacity-0'} strokeWidth={4} />
+                      </div>
 
-                    <div
-                      className="flex items-center gap-3.5 flex-1 overflow-hidden cursor-pointer"
-                      onClick={() => item.isFolder ? setCurrentFolderId(item.savedAs) : toggleFileSelection({ stopPropagation: () => {} } as any, item.savedAs)}
-                    >
-                      <div className="shrink-0 p-1.5 rounded-md" style={{ backgroundColor: 'var(--surface-sunken)', color: fp.color }}><IconComp size={18} strokeWidth={2.5} /></div>
-                      <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center">
-                        <div className="flex-1 flex items-center gap-2 sm:pr-4">
+                      <div
+                        className="flex items-center gap-3.5 flex-1 overflow-hidden cursor-pointer"
+                        onClick={() => item.isFolder ? setCurrentFolderId(item.savedAs) : toggleFileSelection({ stopPropagation: () => {} } as any, item.savedAs)}
+                      >
+                        <div className="shrink-0 p-1.5 rounded-md" style={{ backgroundColor: 'var(--surface-sunken)', color: fp.color }}><IconComp size={18} strokeWidth={2.5} /></div>
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
                           <p className="text-[14px] font-bold truncate" style={{ color: 'var(--text)' }}>{item.fileName}</p>
                           {item.targetRecipient && item.targetRecipient !== 'Everyone' && <Lock size={12} className="shrink-0" style={{ color: 'var(--text-faint)' }} />}
                         </div>
-                        <div className="w-28 vault-mono font-semibold text-[11px] hidden sm:block" style={{ color: 'var(--text-faint)' }}>
-                          {item.isFolder ? '—' : `${(item.size / 1024 / 1024).toFixed(2)} MB`}
-                        </div>
-                        <div className="w-32 font-semibold text-[12px] hidden sm:block truncate pr-4" style={{ color: 'var(--text-faint)' }}>{item.sender}</div>
                       </div>
                     </div>
 
-                    <div className={`flex items-center gap-1 transition-opacity ${isSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    {/* SIZE (Hidden on mobile, col-span-2 on desktop, aligned right) */}
+                    <div className="hidden sm:block col-span-2 text-right vault-mono font-semibold text-[11px]" style={{ color: 'var(--text-faint)' }}>
+                      {item.isFolder ? '—' : `${(item.size / 1024 / 1024).toFixed(2)} MB`}
+                    </div>
+
+                    {/* SENDER (Hidden on mobile, col-span-2 on desktop, aligned left with padding to match header) */}
+                    <div className="hidden sm:block col-span-2 text-left pl-4 font-semibold text-[12px] truncate" style={{ color: 'var(--text-faint)' }}>
+                      {item.sender}
+                    </div>
+
+                    {/* ACTIONS (col-span-4 on mobile, col-span-2 on desktop, aligned right) */}
+                    <div className={`col-span-4 sm:col-span-2 flex items-center justify-end gap-1 transition-opacity ${isSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                       {!item.isFolder && (
                         <button onClick={(e) => { e.stopPropagation(); handleCopyLink(shareUrl); }}
                           className="vault-btn hidden sm:block p-2 rounded-md" style={{ color: 'var(--text-faint)' }}>
