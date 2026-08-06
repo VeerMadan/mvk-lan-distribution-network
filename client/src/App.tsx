@@ -145,11 +145,28 @@ const App = () => {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
-  // Device ID Engine
+  // Device ID & Auto-Resume Engine
   useEffect(() => {
     let id = localStorage.getItem('mvk_device_id');
     if (!id) { id = Math.random().toString(36).substring(2, 15); localStorage.setItem('mvk_device_id', id); }
     setDeviceId(id);
+
+    // 🚨 AUTO-RESUME SESSION 🚨
+    const savedName = localStorage.getItem('mvk_identity');
+    if (savedName) {
+       axios.post(`${SERVER_URL}/api/auth/check`, { username: savedName, deviceId: id })
+         .then(res => {
+            if (res.data.status === 'success') {
+               setUsername(res.data.resolvedName);
+               setAllowedRooms(res.data.allowedRooms || []);
+               setIsNameSet(true);
+               socket.auth = { username: res.data.resolvedName };
+               socket.connect();
+            } else {
+               setUsername(savedName); // Pre-fill name if session expired
+            }
+         }).catch(() => {});
+    }
   }, []);
 
   // Dedicated Security Kick Listener
@@ -292,6 +309,7 @@ const App = () => {
   // ==========================================
 
   const handleSignOut = () => {
+    localStorage.removeItem('mvk_identity'); // 🚨 CLEAR MEMORY ON SIGNOUT 🚨
     socket.disconnect(); setIsNameSet(false); setUsername(''); setAuthStep('name'); setAuthPin(''); setPinErrorText(''); setRoomItems([]); setRoomMessages([]);
   };
 
@@ -339,7 +357,8 @@ const App = () => {
       const res = await axios.post(`${SERVER_URL}/api/auth/pin`, { username, deviceId, pin: authPin, action });
       if (res.data.status === 'success') { 
         playSuccess(); 
-        if (res.data.allowedRooms) setAllowedRooms(res.data.allowedRooms); // 🚨 SAVE MATRIX CLEARANCES 🚨
+        if (res.data.allowedRooms) setAllowedRooms(res.data.allowedRooms);
+        localStorage.setItem('mvk_identity', username); // 🚨 SAVE FOR RELOADS 🚨
         socket.auth = { username }; 
         socket.connect(); 
       }

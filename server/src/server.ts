@@ -116,6 +116,14 @@ app.post('/api/auth/check', (req: any, res: any) => {
   }
 
   if (user.pin) {
+     // 🚨 SILENT RE-AUTH: Bypass PIN if device matches and 15-min session is active 🚨
+     if (user.currentDevice === deviceId && user.sessionExpiresAt > Date.now()) {
+         return res.json({ 
+             status: 'success', 
+             resolvedName: username, 
+             allowedRooms: user.allowedRooms || [] 
+         });
+     }
      return res.json({ status: 'challenge', resolvedName: username });
   }
   
