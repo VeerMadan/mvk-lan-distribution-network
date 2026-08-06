@@ -8,7 +8,8 @@ import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 
-const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
+const SERVER_URL = 'https://192.168.88.50:3000'; 
+// Or use 'https://server.mvk.in:3000'
 const socket = io(SERVER_URL, { autoConnect: false, transports: ['websocket', 'polling'] });
 
 const ROOM_PINS: Record<string, string> = {
