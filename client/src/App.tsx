@@ -232,19 +232,47 @@ const App = () => {
           case 'flip':
             document.body.style.transition = 'transform 1.5s ease-in-out';
             document.body.style.transform = 'rotate(180deg)';
-            setTimeout(() => { document.body.style.transform = 'none'; }, 15000); // Reverts after 15 seconds
+            setTimeout(() => { document.body.style.transform = 'none'; }, 15000);
             break;
+            
           case 'ghost':
             setChatMessage('I AM BEING WATCHED. THE VAULT IS ALIVE.');
             break;
+            
           case 'rickroll':
-            window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+            // 🚨 FIX 1: Redirects current tab to bypass popup blocker. 
+            // Uses a direct MP4 host to bypass YouTube ads completely.
+            window.location.href = 'https://shattereddisk.github.io/rickroll/rickroll.mp4';
             break;
+            
           case 'purge':
-            setCustomAlert({ 
-              title: 'CRITICAL SYSTEM FAILURE', 
-              msg: 'FATAL ERROR: OVERHEATING DETECTED. FORMATTING LOCAL DRIVE C:\\ TO PREVENT FIRE... PLEASE DO NOT TURN OFF YOUR COMPUTER.' 
-            });
+            // 🚨 FIX 2: Injects a pure HTML/CSS overlay directly into the DOM.
+            // Bypasses React entirely so it works flawlessly on any screen.
+            const purgeDiv = document.createElement('div');
+            purgeDiv.style.position = 'fixed';
+            purgeDiv.style.inset = '0';
+            purgeDiv.style.backgroundColor = '#990000';
+            purgeDiv.style.color = 'white';
+            purgeDiv.style.zIndex = '999999';
+            purgeDiv.style.display = 'flex';
+            purgeDiv.style.flexDirection = 'column';
+            purgeDiv.style.alignItems = 'center';
+            purgeDiv.style.justifyContent = 'center';
+            purgeDiv.style.fontFamily = 'monospace';
+            purgeDiv.innerHTML = `
+              <h1 style="font-size: 3rem; margin-bottom: 20px; font-weight: bold;">CRITICAL SYSTEM FAILURE</h1>
+              <p style="font-size: 1.5rem; color: #ffcccc;">FATAL ERROR: OVERHEATING DETECTED.</p>
+              <p style="font-size: 1.2rem; margin-top: 20px;">FORMATTING LOCAL DRIVE C:\\ TO PREVENT HARDWARE FIRE...</p>
+              <p style="font-size: 1rem; margin-top: 10px; color: #ff9999;">DO NOT TURN OFF YOUR COMPUTER</p>
+              <div style="width: 300px; height: 20px; border: 2px solid white; margin-top: 30px;">
+                <div style="width: 0%; height: 100%; background: white; animation: fillBar 10s forwards linear;"></div>
+              </div>
+              <style>@keyframes fillBar { to { width: 100%; } }</style>
+            `;
+            document.body.appendChild(purgeDiv);
+            
+            // Remove the prank after 10 seconds so they can get back to work
+            setTimeout(() => { document.body.removeChild(purgeDiv); }, 10000); 
             break;
         }
       }
