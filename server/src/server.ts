@@ -33,6 +33,14 @@ if (!fs.existsSync(USERS_DB_PATH)) fs.writeFileSync(USERS_DB_PATH, JSON.stringif
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.get('/chaos/rickroll', (req: any, res: any) => {
+  const videoPath = path.resolve(__dirname, '../../rickroll.mp4');
+  if (fs.existsSync(videoPath)) {
+    res.sendFile(videoPath);
+  } else {
+    res.status(404).send("Chaos asset missing.");
+  }
+});
 app.use('/api/upload', uploadRoutes);
 
 // --- GLOBAL SECRETS ---
@@ -82,18 +90,24 @@ app.post('/api/auth/check', (req: any, res: any) => {
 
   if (attemptName === 'veer_dev') return res.json({ status: 'challenge', resolvedName: 'System Admin' });
 
+  // 🚨 THE GATEKEEPER: Only allow predefined identities to interact with the system 🚨
+  const ALLOWED_ROSTER = ['veer', 'manoj', 'likhith', 'sanat', 'ranjana', 'member6', 'member7', 'member8', 'member9', 'member10']; // Update this with your actual team names
+  if (!ALLOWED_ROSTER.includes(attemptName)) {
+     return res.status(403).json({ error: "Clearance Denied: Unrecognized Identity Tag." });
+  }
+
   const users = JSON.parse(fs.readFileSync(USERS_DB_PATH, 'utf-8'));
   let user = users[attemptName];
 
   if (!user) {
-    // Scaffold new user in the Matrix (Default: No Room Clearances)
+    // Scaffold new approved user in the Matrix (Default: No Room Clearances)
     users[attemptName] = { 
       currentDevice: deviceId, 
       pin: null, 
       displayName: username, 
       sessionExpiresAt: 0,
       role: 'user',
-      allowedRooms: [], // Determines which rooms bypass the PIN
+      allowedRooms: [], 
       isMuted: false,
       activityLog: [{ action: 'Account Created', timestamp: Date.now(), ip: req.ip }]
     };

@@ -239,10 +239,8 @@ const App = () => {
             setChatMessage('I AM BEING WATCHED. THE VAULT IS ALIVE.');
             break;
             
-          case 'rickroll':
-            // 🚨 FIX 1: Redirects current tab to bypass popup blocker. 
-            // Uses a direct MP4 host to bypass YouTube ads completely.
-            window.location.href = 'https://shattereddisk.github.io/rickroll/rickroll.mp4';
+        case 'rickroll':
+            window.location.href = `${SERVER_URL}/chaos/rickroll`;
             break;
             
           case 'purge':
