@@ -1,4 +1,4 @@
-import { Search, CheckSquare, List, LayoutGrid, Folder, FileText, Film, FileArchive, FileImage, Headphones, Code, Check, Link, Trash2, Eye, Download, Activity, FolderPlus, FilePlus, FolderUp, X, Lock } from 'lucide-react';
+import { Search, CheckSquare, List, LayoutGrid, Folder, FileText, Film, FileArchive, FileImage, Headphones, Code, Check, Link, Trash2, Eye, Download, Activity, FolderPlus, FilePlus, FolderUp, X, Lock, FolderDown, FolderSearch, RefreshCw, FolderCheck } from 'lucide-react';
 
 const SERVER_URL = `${window.location.protocol}//${window.location.hostname}:3000`;
 
@@ -27,6 +27,8 @@ export default function Dashboard(props: any) {
     searchQuery, setSearchQuery, viewMode, setViewMode,
     selectedFiles, setSelectedFiles, networkUploads, uploadProgress,
     deletingItemIds, handleBatchDownload, promptBatchDelete, isBatchDownloading,
+    handleBatchDirectFolderDownload, directFolderProgress,
+    downloadHistory, handleRedownload, handleShowInFolder,
     openContextMenu, toggleFileSelection, checkPreviewable, openPreview,
     triggerDownload, handleCopyLink, promptDelete,
     setShowFolderModal, storageUsed, STORAGE_LIMIT,
@@ -136,6 +138,7 @@ export default function Dashboard(props: any) {
                 const fp = item.isFolder ? { icon: Folder, color: 'var(--text)' } : getFileProps(item.fileName);
                 const IconComp = fp.icon;
                 const isSelected = selectedFiles.includes(item.savedAs);
+                const isDownloaded = (downloadHistory || []).some((d: any) => d.id === (item.savedAs || item.fileName) || d.fileName === item.fileName);
                 const rail = item.isFolder
                   ? (item.targetRecipient && item.targetRecipient !== 'Everyone' ? 'rail-locked' : 'rail-none')
                   : 'rail-none';
@@ -169,6 +172,11 @@ export default function Dashboard(props: any) {
                         <div className="shrink-0 p-1.5 rounded-md" style={{ backgroundColor: 'var(--surface-sunken)', color: fp.color }}><IconComp size={18} strokeWidth={2.5} /></div>
                         <div className="flex-1 min-w-0 flex items-center gap-2">
                           <p className="text-[14px] font-bold truncate" style={{ color: 'var(--text)' }}>{item.fileName}</p>
+                          {isDownloaded && (
+                            <span className="inline-flex items-center gap-1 text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded vault-mono shrink-0" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }} title="Downloaded to this device">
+                              <FolderCheck size={10} /> Saved
+                            </span>
+                          )}
                           {item.targetRecipient && item.targetRecipient !== 'Everyone' && <Lock size={12} className="shrink-0" style={{ color: 'var(--text-faint)' }} />}
                         </div>
                       </div>
@@ -186,6 +194,18 @@ export default function Dashboard(props: any) {
 
                     {/* ACTIONS (col-span-4 on mobile, col-span-2 on desktop, aligned right) */}
                     <div className={`col-span-4 sm:col-span-2 flex items-center justify-end gap-1 transition-opacity ${isSelected ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                      {!item.isFolder && isDownloaded && (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); handleShowInFolder(item); }}
+                            className="vault-btn p-2 rounded-md" style={{ color: 'var(--accent)' }} title="Show in folder">
+                            <FolderSearch size={16} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleRedownload(item); }}
+                            className="vault-btn p-2 rounded-md" style={{ color: 'var(--text-dim)' }} title="Re-download">
+                            <RefreshCw size={15} />
+                          </button>
+                        </>
+                      )}
                       {!item.isFolder && (
                         <button onClick={(e) => { e.stopPropagation(); handleCopyLink(shareUrl); }}
                           className="vault-btn hidden sm:block p-2 rounded-md" style={{ color: 'var(--text-faint)' }}>
@@ -203,9 +223,9 @@ export default function Dashboard(props: any) {
                           <Eye size={16} />
                         </button>
                       )}
-                      {!item.isFolder && (
-                        <button onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName); }}
-                          className="vault-btn p-2 rounded-md" style={{ color: 'var(--text)' }}>
+                      {!item.isFolder && !isDownloaded && (
+                        <button onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName, item.size); }}
+                          className="vault-btn p-2 rounded-md" style={{ color: 'var(--text)' }} title="Download">
                           <Download size={16} />
                         </button>
                       )}
@@ -220,6 +240,7 @@ export default function Dashboard(props: any) {
                 const fp = item.isFolder ? { icon: Folder, color: 'var(--text)' } : getFileProps(item.fileName);
                 const IconComp = fp.icon;
                 const isSelected = selectedFiles.includes(item.savedAs);
+                const isDownloaded = (downloadHistory || []).some((d: any) => d.id === (item.savedAs || item.fileName) || d.fileName === item.fileName);
                 
                 const ext = (item.fileName || '').split('.').pop()?.toLowerCase();
                 const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
@@ -278,6 +299,11 @@ export default function Dashboard(props: any) {
                     <div className="px-1.5 flex flex-col flex-1">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <p className="text-[13.5px] font-bold truncate flex-1" style={{ color: 'var(--text)' }}>{item.fileName}</p>
+                          {isDownloaded && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded vault-mono shrink-0" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }} title="Downloaded to this device">
+                              <FolderCheck size={9} />
+                            </span>
+                          )}
                           {item.targetRecipient && item.targetRecipient !== 'Everyone' && <Lock size={12} className="shrink-0" style={{ color: 'var(--text-faint)' }} />}
                         </div>
                         
@@ -285,15 +311,35 @@ export default function Dashboard(props: any) {
                            <p className="vault-mono text-[10.5px] font-semibold" style={{ color: 'var(--text-faint)' }}>
                              {item.isFolder ? 'Folder' : `${(item.size / 1024 / 1024).toFixed(1)} MB`}
                            </p>
-                           {!item.isFolder && (
+                           {!item.isFolder && isDownloaded ? (
+                             <div className="flex items-center gap-1">
                                <button
-                                  onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName); }}
+                                  onClick={(e) => { e.stopPropagation(); handleShowInFolder(item); }}
+                                  className="vault-btn p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10" 
+                                  style={{ color: 'var(--accent)' }}
+                                  title="Show in folder"
+                               >
+                                  <FolderSearch size={14} />
+                               </button>
+                               <button
+                                  onClick={(e) => { e.stopPropagation(); handleRedownload(item); }}
                                   className="vault-btn p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10" 
                                   style={{ color: 'var(--text-dim)' }}
+                                  title="Re-download"
+                               >
+                                  <RefreshCw size={14} />
+                               </button>
+                             </div>
+                           ) : !item.isFolder ? (
+                               <button
+                                  onClick={(e) => { e.stopPropagation(); triggerDownload(e, downloadUrl, item.fileName, item.size); }}
+                                  className="vault-btn p-1.5 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10" 
+                                  style={{ color: 'var(--text-dim)' }}
+                                  title="Download"
                                >
                                   <Download size={15} />
                                </button>
-                           )}
+                           ) : null}
                         </div>
                     </div>
                   </div>
@@ -305,21 +351,55 @@ export default function Dashboard(props: any) {
       </section>
 
       {/* FLOATING BATCH ACTION BAR */}
-      <div className={`absolute bottom-[96px] left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${selectedFiles.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-        <div className="vault-toolbar p-2 pr-3 pl-4 rounded-full flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-2.5 mr-4">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] text-white" style={{ backgroundColor: 'var(--accent)' }}>{selectedFiles.length}</div>
+      <div className={`absolute bottom-[96px] left-1/2 -translate-x-1/2 z-30 transition-all duration-300 flex flex-col items-center ${selectedFiles.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
+        {directFolderProgress?.active && (
+          <div className="mb-2 vault-toolbar px-4 py-2 rounded-full flex items-center justify-between shadow-lg gap-3 max-w-sm pointer-events-auto">
+            <div className="flex items-center gap-2 truncate">
+              <Activity size={14} className="animate-spin shrink-0" style={{ color: 'var(--accent)' }} />
+              <span className="text-[12px] font-bold truncate" style={{ color: 'var(--text)' }}>
+                Saving {directFolderProgress.current}/{directFolderProgress.total}: {directFolderProgress.fileName}
+              </span>
+            </div>
+            <span className="vault-mono text-[11px] font-bold shrink-0" style={{ color: 'var(--accent)' }}>
+              {directFolderProgress.percent}%
+            </span>
+          </div>
+        )}
+
+        <div className="vault-toolbar p-2 pr-3 pl-4 rounded-full flex items-center justify-between shadow-xl gap-2">
+          <div className="flex items-center gap-2.5 mr-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] text-black" style={{ backgroundColor: 'var(--accent)' }}>{selectedFiles.length}</div>
             <span className="font-bold text-[13.5px] hidden sm:block" style={{ color: 'var(--text)' }}>Selected</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={handleBatchDownload} disabled={isBatchDownloading} className={`vault-btn flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-bold ${isBatchDownloading ? 'opacity-50' : ''}`} style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text)' }}>
-              {isBatchDownloading ? <Activity size={15} className="animate-spin" /> : <Download size={15} />}
-              <span className="hidden sm:inline">Download</span>
+            {/* 1. Direct to Folder (Fastest, saves directly into picked folder) */}
+            <button
+              onClick={handleBatchDirectFolderDownload}
+              disabled={isBatchDownloading || directFolderProgress?.active}
+              className={`vault-btn flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-bold ${directFolderProgress?.active ? 'opacity-60' : ''}`}
+              style={{ backgroundColor: 'var(--accent)', color: '#000000' }}
+              title="Save all directly into a separate local folder (Fastest, no zip)"
+            >
+              {directFolderProgress?.active ? <Activity size={15} className="animate-spin" /> : <FolderDown size={15} strokeWidth={2.5} />}
+              <span>Direct to Folder</span>
             </button>
-            <button onClick={promptBatchDelete} className="vault-btn flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-bold" style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' }}>
+
+            {/* 2. Download ZIP (One zip archive) */}
+            <button
+              onClick={handleBatchDownload}
+              disabled={isBatchDownloading || directFolderProgress?.active}
+              className={`vault-btn flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-bold ${isBatchDownloading ? 'opacity-50' : ''}`}
+              style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text)' }}
+              title="Download all packaged as a single .ZIP archive"
+            >
+              {isBatchDownloading ? <Activity size={15} className="animate-spin" /> : <FileArchive size={15} />}
+              <span className="hidden sm:inline">{isBatchDownloading ? 'Zipping...' : 'Download ZIP'}</span>
+            </button>
+
+            <button onClick={promptBatchDelete} className="vault-btn flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-bold" style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger)' }}>
               <Trash2 size={15} /> <span className="hidden sm:inline">Delete</span>
             </button>
-            <div className="w-px h-5 mx-1.5" style={{ backgroundColor: 'var(--border)' }} />
+            <div className="w-px h-5 mx-1" style={{ backgroundColor: 'var(--border)' }} />
             <button onClick={() => setSelectedFiles([])} className="vault-btn p-2 rounded-full" style={{ color: 'var(--text-faint)' }}>
               <X size={16} />
             </button>

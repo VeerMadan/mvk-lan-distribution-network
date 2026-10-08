@@ -3,14 +3,29 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
 
+const getKey = () => {
+  const p1 = path.resolve(__dirname, './key.pem');
+  if (fs.existsSync(p1)) return fs.readFileSync(p1);
+  const p2 = path.resolve(__dirname, '../server/192.168.88.50+2-key.pem');
+  if (fs.existsSync(p2)) return fs.readFileSync(p2);
+  return Buffer.from('');
+};
+const getCert = () => {
+  const p1 = path.resolve(__dirname, './cert.pem');
+  if (fs.existsSync(p1)) return fs.readFileSync(p1);
+  const p2 = path.resolve(__dirname, '../server/192.168.88.50+2.pem');
+  if (fs.existsSync(p2)) return fs.readFileSync(p2);
+  return Buffer.from('');
+};
+
 export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
     port: 443,
     https: {
-      key: fs.readFileSync(path.resolve(__dirname, './key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, './cert.pem')),
+      key: getKey(),
+      cert: getCert(),
     }
   },
   preview: {
@@ -19,8 +34,8 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
     https: {
-      key: fs.readFileSync(path.resolve(__dirname, './key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, './cert.pem')),
+      key: getKey(),
+      cert: getCert(),
     },
     proxy: {
       '/api': { target: 'https://127.0.0.1:3000', changeOrigin: true, secure: false },

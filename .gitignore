@@ -21,3 +21,7 @@ mvk-logs.txt
 # Ignore Production Databases
 mvk-users.json
 mvk-db.json
+
+# Local SSL certs
+**/cert.pem
+**/key.pem

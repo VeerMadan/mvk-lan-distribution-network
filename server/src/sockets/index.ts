@@ -4,32 +4,36 @@ import path from 'path';
 
 const activeUsers: Record<string, { id: string; username: string; ip: string }[]> = {};
 const roomChats: Record<string, any[]> = {};
-const dbPath = path.join(__dirname, '../../mvk-db.json');
+const getDbPath = () => {
+  const rootDb = path.resolve(__dirname, '../../../mvk-db.json');
+  if (fs.existsSync(rootDb)) return rootDb;
+  const serverDb = path.resolve(__dirname, '../../mvk-db.json');
+  if (fs.existsSync(serverDb)) return serverDb;
+  return rootDb;
+};
+const dbPath = getDbPath();
 const logPath = path.join(__dirname, '../../mvk-logs.txt');
-const HISTORY_DB_PATH = path.join(__dirname, '../../mvk-history.json');
 
 const getHistory = () => {
   try {
-    if (!fs.existsSync(HISTORY_DB_PATH)) return []; // If file doesn't exist, return empty
-    
-    const data = fs.readFileSync(HISTORY_DB_PATH, 'utf-8');
-    
-    // If the file is completely empty or just whitespace, don't try to parse it
-    if (!data || data.trim() === '') {
-      return []; 
-    }
-    
+    if (!fs.existsSync(dbPath)) return [];
+    const data = fs.readFileSync(dbPath, 'utf-8');
+    if (!data || data.trim() === '') return [];
     return JSON.parse(data);
   } catch (error) {
-    console.error("⚠️ [WARNING] History database corrupted. Resetting to empty state to prevent crash.");
-    // Optional: fs.writeFileSync(HISTORY_DB_PATH, JSON.stringify([])); // Auto-heal the file
+    console.error("⚠️ [WARNING] History database error:", error);
     return [];
   }
 };
 
 const saveToHistory = (record: any) => {
   const history = getHistory();
-  history.unshift({ ...record, timestamp: Date.now() });
+  const existingIdx = history.findIndex((h: any) => (record.savedAs && h.savedAs === record.savedAs) || (h.fileName === record.fileName && h.room === record.room));
+  if (existingIdx !== -1) {
+    history[existingIdx] = { ...history[existingIdx], ...record, timestamp: Date.now() };
+  } else {
+    history.unshift({ ...record, timestamp: Date.now() });
+  }
   fs.writeFileSync(dbPath, JSON.stringify(history, null, 2));
 };
 

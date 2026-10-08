@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight, Clock, HardDrive } from 'lucide-react';
+import { ShieldCheck, Lock, Activity, X, Download, Trash2, MessageSquare, Send, FolderPlus, Share2, Users, Sun, Moon, Menu, ChevronRight, Clock, HardDrive, FolderSearch, RefreshCw, Copy } from 'lucide-react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
 
@@ -82,6 +82,19 @@ const App = () => {
   const [networkUploads, setNetworkUploads] = useState<Record<string, {user: string, progress: number, fileName: string}>>({});
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isBatchDownloading, setIsBatchDownloading] = useState(false);
+  const [downloadHistory, setDownloadHistory] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('mvk_download_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [isDownloadsOpen, setIsDownloadsOpen] = useState(false);
+  const [showFolderInfoModal, setShowFolderInfoModal] = useState<{ open: boolean; item: any | null }>({ open: false, item: null });
+  const [directFolderProgress, setDirectFolderProgress] = useState<{ active: boolean; current: number; total: number; fileName: string; percent: number }>({
+    active: false, current: 0, total: 0, fileName: '', percent: 0
+  });
   const [previewFile, setPreviewFile] = useState<{url: string, name: string, type: 'image' | 'pdf' | 'video'} | null>(null);
   const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
   const [deletingItemIds, setDeletingItemIds] = useState<string[]>([]);
@@ -460,10 +473,36 @@ const App = () => {
     }
   };
 
-  const triggerDownload = (e: React.MouseEvent, url: string, fileName: string) => {
-    e.preventDefault(); e.stopPropagation();
-    const a = document.createElement('a'); a.href = url; a.download = fileName; a.target = '_blank';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const recordDownload = (fileName: string, savedAs: string, size: number, folderName?: string, downloadUrl?: string) => {
+    const newRecord = {
+      id: savedAs || fileName,
+      fileName,
+      size: size || 0,
+      timestamp: Date.now(),
+      folderName: folderName || 'Downloads (Default Browser Folder)',
+      downloadUrl: downloadUrl || `${SERVER_URL}/download/${encodeURIComponent(savedAs || fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(deviceId)}`
+    };
+    setDownloadHistory(prev => {
+      const updated = [newRecord, ...prev.filter(d => d.id !== newRecord.id && d.fileName !== newRecord.fileName)].slice(0, 50);
+      try {
+        localStorage.setItem('mvk_download_history', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const triggerDownload = (e: React.MouseEvent, url: string, fileName: string, size?: number) => {
+    if (e && e.preventDefault) e.preventDefault(); 
+    if (e && e.stopPropagation) e.stopPropagation();
+    const a = document.createElement('a'); 
+    a.href = url; 
+    a.download = fileName; 
+    a.target = '_blank';
+    document.body.appendChild(a); 
+    a.click(); 
+    document.body.removeChild(a);
+    recordDownload(fileName, fileName, size || 0, 'Downloads (Default Browser Folder)', url);
+    showToast(`Downloading ${fileName}...`);
   };
 
   const handleCopyLink = (url: string) => {
@@ -546,13 +585,122 @@ const App = () => {
     setIsBatchDownloading(true);
     try {
       const response = await axios.post(`${SERVER_URL}/api/download-batch`, { files: selectedFiles }, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a'); link.href = url;
-      const now = new Date(); const timeStamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
-      link.setAttribute('download', `MVK-Vault-Export_${timeStamp}.zip`);
-      document.body.appendChild(link); link.click(); window.URL.revokeObjectURL(url);
-      showToast('Batch archive exported'); setSelectedFiles([]);
-    } catch (error) { playError(); showToast('Error generating archive'); } finally { setIsBatchDownloading(false); }
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a'); 
+      link.href = url;
+      const now = new Date(); 
+      const timeStamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
+      const zipName = `MVK-Vault-Export_${timeStamp}.zip`;
+      link.setAttribute('download', zipName);
+      document.body.appendChild(link); 
+      link.click(); 
+      document.body.removeChild(link); 
+      window.URL.revokeObjectURL(url);
+      recordDownload(zipName, zipName, blob.size, 'Downloads (Default Browser Folder)', url);
+      showToast('Batch archive exported'); 
+      setSelectedFiles([]);
+    } catch (error) { 
+      playError(); 
+      showToast('Error generating archive'); 
+    } finally { 
+      setIsBatchDownloading(false); 
+    }
+  };
+
+  const handleBatchDirectFolderDownload = async () => {
+    if (selectedFiles.length === 0) return;
+
+    if (!('showDirectoryPicker' in window)) {
+      showToast('Direct folder save requires Chrome/Edge. Falling back to ZIP...');
+      handleBatchDownload();
+      return;
+    }
+
+    try {
+      const parentDirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours()}${now.getMinutes()}`;
+      const exportFolderName = `MVK_${activeRoom.replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}`;
+      const targetDirHandle = await parentDirHandle.getDirectoryHandle(exportFolderName, { create: true });
+      const fullLocation = `${parentDirHandle.name}/${exportFolderName}`;
+
+      const itemsToDownload = roomItems.filter((item: any) => selectedFiles.includes(item.savedAs || item.fileName));
+      if (itemsToDownload.length === 0) {
+        showToast('No matching items found');
+        return;
+      }
+
+      setDirectFolderProgress({ active: true, current: 0, total: itemsToDownload.length, fileName: 'Starting direct transfer...', percent: 0 });
+
+      let successCount = 0;
+      for (let i = 0; i < itemsToDownload.length; i++) {
+        const item = itemsToDownload[i];
+        setDirectFolderProgress({
+          active: true,
+          current: i + 1,
+          total: itemsToDownload.length,
+          fileName: item.fileName,
+          percent: Math.round(((i + 1) / itemsToDownload.length) * 100)
+        });
+
+        if (item.isFolder) {
+          const subDirHandle = await targetDirHandle.getDirectoryHandle(item.fileName, { create: true });
+          const children = roomItems.filter((r: any) => r.parentId === (item.savedAs || item.id));
+          for (const child of children) {
+            const fileUrl = `${SERVER_URL}/download/${encodeURIComponent(child.savedAs || child.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+            const resp = await axios.get(fileUrl, { responseType: 'blob' });
+            const fileHandle = await subDirHandle.getFileHandle(child.fileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(resp.data);
+            await writable.close();
+            recordDownload(child.fileName, child.savedAs, child.size, `${fullLocation}/${item.fileName}`, fileUrl);
+          }
+          successCount++;
+        } else {
+          const fileUrl = `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+          const resp = await axios.get(fileUrl, { responseType: 'blob' });
+          const fileHandle = await targetDirHandle.getFileHandle(item.fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(resp.data);
+          await writable.close();
+          recordDownload(item.fileName, item.savedAs, item.size, fullLocation, fileUrl);
+          successCount++;
+        }
+      }
+
+      setDirectFolderProgress({ active: false, current: itemsToDownload.length, total: itemsToDownload.length, fileName: '', percent: 100 });
+      playSuccess();
+      showToast(`Saved ${successCount} item(s) directly into "${fullLocation}"!`);
+      setSelectedFiles([]);
+    } catch (err: any) {
+      setDirectFolderProgress({ active: false, current: 0, total: 0, fileName: '', percent: 0 });
+      if (err.name === 'AbortError') {
+        return;
+      }
+      console.error("Direct folder download error:", err);
+      playError();
+      showToast('Direct download error. You can use Download ZIP.');
+    }
+  };
+
+  const handleRedownload = (item: any) => {
+    const downloadUrl = item.downloadUrl || `${SERVER_URL}/download/${encodeURIComponent(item.savedAs || item.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${deviceId}`;
+    triggerDownload({ preventDefault: () => {}, stopPropagation: () => {} } as any, downloadUrl, item.fileName, item.size);
+    showToast(`Re-downloading ${item.fileName}...`);
+  };
+
+  const handleShowInFolder = async (item: any) => {
+    try {
+      const res = await axios.post(`${SERVER_URL}/api/reveal-file`, { fileName: item.savedAs || item.fileName });
+      if (res.data?.localOpened) {
+        showToast(`Revealed in Windows File Explorer`);
+        return;
+      }
+    } catch (e) {}
+
+    const historyItem = downloadHistory.find(d => d.id === (item.savedAs || item.fileName) || d.fileName === item.fileName);
+    setShowFolderInfoModal({ open: true, item: historyItem || item });
   };
 
   const promptBatchDelete = () => {
@@ -728,9 +876,24 @@ const App = () => {
                ))}
             </div>
           </div>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className="vault-btn p-2 rounded-md shrink-0" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}>
-            {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsDownloadsOpen(!isDownloadsOpen)}
+              className="vault-btn p-2 rounded-md shrink-0 relative flex items-center gap-1.5"
+              style={{ backgroundColor: isDownloadsOpen ? 'var(--accent-soft)' : 'var(--surface-sunken)', color: isDownloadsOpen ? 'var(--accent)' : 'var(--text-dim)' }}
+              title="Downloads Manager"
+            >
+              <Download size={15} />
+              {downloadHistory.length > 0 && (
+                <span className="w-4 h-4 rounded-full text-[9.5px] font-bold flex items-center justify-center text-black" style={{ backgroundColor: 'var(--accent)' }}>
+                  {downloadHistory.length > 99 ? '99+' : downloadHistory.length}
+                </span>
+              )}
+            </button>
+            <button onClick={() => setIsDarkMode(!isDarkMode)} className="vault-btn p-2 rounded-md shrink-0" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}>
+              {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+          </div>
         </header>
 
         <Dashboard
@@ -739,6 +902,8 @@ const App = () => {
           searchQuery={searchQuery} setSearchQuery={setSearchQuery} viewMode={viewMode} setViewMode={setViewMode}
           selectedFiles={selectedFiles} setSelectedFiles={setSelectedFiles} networkUploads={networkUploads} uploadProgress={uploadProgress}
           deletingItemIds={deletingItemIds} handleBatchDownload={handleBatchDownload} promptBatchDelete={promptBatchDelete} isBatchDownloading={isBatchDownloading}
+          handleBatchDirectFolderDownload={handleBatchDirectFolderDownload} directFolderProgress={directFolderProgress}
+          downloadHistory={downloadHistory} handleRedownload={handleRedownload} handleShowInFolder={handleShowInFolder}
           openContextMenu={openContextMenu} toggleFileSelection={toggleFileSelection} checkPreviewable={checkPreviewable} openPreview={openPreview}
           triggerDownload={triggerDownload} handleCopyLink={handleCopyLink} promptDelete={promptDelete} handleExtendExpiry={(f: any) => {socket.emit('extend-expiry', { identifier: f.savedAs || f.fileName, isFolder: f.isFolder, addedHours: 24 }); showToast(`Extended ${f.fileName}`); setContextMenu({ show: false, x: 0, y: 0, file: null });}}
           setShowFolderModal={setShowFolderModal} storageUsed={storageUsed} STORAGE_LIMIT={STORAGE_LIMIT}
@@ -867,7 +1032,13 @@ const App = () => {
               <button onClick={() => setCurrentFolderId(contextMenu.file.savedAs)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><FolderPlus size={15} /> Open folder</button>
             ) : (
               <>
-                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(deviceId)}`, contextMenu.file.fileName)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
+                <button onClick={(e) => triggerDownload(e, `${SERVER_URL}/download/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}?user=${encodeURIComponent(displayUsername)}&device=${encodeURIComponent(deviceId)}`, contextMenu.file.fileName, contextMenu.file.size)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Download size={15} /> Download</button>
+                {downloadHistory.some((d: any) => d.id === (contextMenu.file.savedAs || contextMenu.file.fileName) || d.fileName === contextMenu.file.fileName) && (
+                  <>
+                    <button onClick={() => { handleShowInFolder(contextMenu.file); setContextMenu(prev => ({ ...prev, show: false })); }} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><FolderSearch size={15} /> Show in folder</button>
+                    <button onClick={() => { handleRedownload(contextMenu.file); setContextMenu(prev => ({ ...prev, show: false })); }} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><RefreshCw size={15} /> Re-download</button>
+                  </>
+                )}
                 <button onClick={() => handleCopyLink(`${SERVER_URL}/shared/${encodeURIComponent(contextMenu.file.savedAs || contextMenu.file.fileName)}`)} className="vault-nav-item w-full text-left px-4 py-2 text-[13px] flex items-center gap-3"><Share2 size={15} /> Copy link</button>
               </>
             )}
@@ -905,6 +1076,179 @@ const App = () => {
                   <h3 className="font-bold text-[11px] uppercase tracking-wider mb-1" style={{ color: 'var(--text)' }}>Licensing</h3>
                   <p className="text-[12px] leading-relaxed" style={{ color: 'var(--text-dim)' }}>Licensed strictly for internal operations. Commercialization outside the organization is strictly prohibited.</p>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 📥 DOWNLOADS MANAGER PANEL 📥 */}
+        {isDownloadsOpen && (
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-start justify-end z-[750] p-4 sm:p-6" onClick={() => setIsDownloadsOpen(false)}>
+            <motion.div
+              {...panelIn}
+              onClick={(e) => e.stopPropagation()}
+              className="vault-elevated rounded-2xl w-full max-w-sm sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl mt-12"
+            >
+              <div className="p-4 sm:p-5 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-raised)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                    <Download size={18} />
+                  </div>
+                  <div>
+                    <h2 className="text-[14.5px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>Downloads Manager</h2>
+                    <p className="vault-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>{downloadHistory.length} ASSET(S) LOGGED</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {downloadHistory.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setDownloadHistory([]);
+                        localStorage.removeItem('mvk_download_history');
+                        showToast('Downloads history cleared');
+                      }}
+                      className="vault-btn px-2.5 py-1 rounded text-[11px] font-semibold"
+                      style={{ color: 'var(--text-dim)' }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button onClick={() => setIsDownloadsOpen(false)} className="vault-btn p-1.5 rounded-md" style={{ color: 'var(--text-dim)' }}>
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 no-scrollbar">
+                {downloadHistory.length === 0 ? (
+                  <div className="text-center py-12 text-[13px] font-medium" style={{ color: 'var(--text-faint)' }}>
+                    <Download size={32} className="mx-auto mb-3 opacity-30" />
+                    No downloaded items yet.<br />Downloads and folder exports will appear here.
+                  </div>
+                ) : (
+                  downloadHistory.map((item: any, idx: number) => (
+                    <div key={idx} className="vault-panel p-3 sm:p-3.5 rounded-xl flex items-center justify-between gap-3 group transition-all">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text)' }}>{item.fileName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] font-medium truncate max-w-[180px] sm:max-w-[220px]" style={{ color: 'var(--accent)' }}>
+                            📁 {item.folderName}
+                          </span>
+                          <span className="vault-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>
+                            · {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleShowInFolder(item)}
+                          className="vault-btn p-2 rounded-lg"
+                          style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text)' }}
+                          title="Show in folder"
+                        >
+                          <FolderSearch size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleRedownload(item)}
+                          className="vault-btn p-2 rounded-lg"
+                          style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                          title="Re-download"
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 📁 DOWNLOADED ASSET FOLDER INFO MODAL 📁 */}
+        {showFolderInfoModal.open && showFolderInfoModal.item && (
+          <motion.div {...fadeIn} className="fixed inset-0 vault-scrim flex items-center justify-center z-[800] px-4">
+            <motion.div {...panelIn} className="vault-elevated p-6 sm:p-7 rounded-2xl w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                    <FolderSearch size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--text)' }}>Downloaded Asset Location</h2>
+                    <p className="vault-mono text-[10px]" style={{ color: 'var(--text-faint)' }}>LOCAL LOCATION TRACKER</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowFolderInfoModal({ open: false, item: null })} className="vault-btn p-1.5 rounded-md" style={{ color: 'var(--text-dim)' }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 my-4">
+                <div className="p-3.5 rounded-xl vault-panel">
+                  <p className="vault-mono text-[10.5px] uppercase font-bold mb-1" style={{ color: 'var(--text-faint)' }}>File Name</p>
+                  <p className="text-[13.5px] font-bold break-all" style={{ color: 'var(--text)' }}>{showFolderInfoModal.item.fileName}</p>
+                  {showFolderInfoModal.item.size > 0 && (
+                    <p className="vault-mono text-[11px] mt-1" style={{ color: 'var(--text-dim)' }}>
+                      {(showFolderInfoModal.item.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-3.5 rounded-xl vault-panel">
+                  <p className="vault-mono text-[10.5px] uppercase font-bold mb-1" style={{ color: 'var(--text-faint)' }}>Destination Folder</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-semibold flex items-center gap-2 truncate" style={{ color: 'var(--accent)' }}>
+                      📁 {showFolderInfoModal.item.folderName || 'Downloads (Default Browser Folder)'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(showFolderInfoModal.item?.folderName || 'Downloads');
+                          showToast('Folder location copied');
+                        }
+                      }}
+                      className="vault-btn p-1.5 rounded-md shrink-0"
+                      title="Copy location"
+                      style={{ color: 'var(--text-dim)' }}
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg text-[11.5px] leading-relaxed" style={{ backgroundColor: 'var(--surface-sunken)', color: 'var(--text-dim)' }}>
+                  💡 <strong style={{ color: 'var(--text)' }}>Note:</strong> Items saved using <em>Direct to Folder</em> are stored directly in your selected directory. Standard browser downloads are saved to your system's default <em>Downloads</em> folder.
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 mt-5">
+                <button
+                  onClick={() => {
+                    handleRedownload(showFolderInfoModal.item);
+                    setShowFolderInfoModal({ open: false, item: null });
+                  }}
+                  className="vault-btn vault-btn-secondary flex-1 py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={14} /> Re-download
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await axios.post(`${SERVER_URL}/api/reveal-file`, { fileName: showFolderInfoModal.item.savedAs || showFolderInfoModal.item.fileName });
+                      if (res.data?.localOpened) {
+                        showToast('Revealed in Windows File Explorer');
+                        setShowFolderInfoModal({ open: false, item: null });
+                        return;
+                      }
+                    } catch (e) {}
+                    showToast('Location: ' + (showFolderInfoModal.item?.folderName || 'Downloads'));
+                    setShowFolderInfoModal({ open: false, item: null });
+                  }}
+                  className="vault-btn vault-btn-primary flex-1 py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-2"
+                >
+                  <FolderSearch size={14} /> Open Location
+                </button>
               </div>
             </motion.div>
           </motion.div>

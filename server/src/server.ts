@@ -13,10 +13,22 @@ dotenv.config();
 
 const app = express();
 
-// 🚨 LOAD YOUR FORGED SSL CERTIFICATES 🚨
-const privateKey = fs.readFileSync(path.resolve(__dirname, '../key.pem'), 'utf8');
-const certificate = fs.readFileSync(path.resolve(__dirname, '../cert.pem'), 'utf8');
-const credentials = { key: privateKey, cert: certificate };
+// 🚨 LOAD SSL CERTIFICATES (with resilient fallback) 🚨
+const getKey = () => {
+  const p1 = path.resolve(__dirname, '../key.pem');
+  if (fs.existsSync(p1)) return fs.readFileSync(p1, 'utf8');
+  const p2 = path.resolve(__dirname, '../192.168.88.50+2-key.pem');
+  if (fs.existsSync(p2)) return fs.readFileSync(p2, 'utf8');
+  throw new Error("No private key found in server directory");
+};
+const getCert = () => {
+  const p1 = path.resolve(__dirname, '../cert.pem');
+  if (fs.existsSync(p1)) return fs.readFileSync(p1, 'utf8');
+  const p2 = path.resolve(__dirname, '../192.168.88.50+2.pem');
+  if (fs.existsSync(p2)) return fs.readFileSync(p2, 'utf8');
+  throw new Error("No certificate found in server directory");
+};
+const credentials = { key: getKey(), cert: getCert() };
 
 const httpsServer = https.createServer(credentials, app);
 
@@ -263,7 +275,13 @@ app.post('/api/download-batch', (req: any, res: any) => {
     if (!files || !files.length) return res.status(400).json({ error: "No files requested" });
   
     let history: any[] = [];
-    if (fs.existsSync(DB_PATH)) history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    if (fs.existsSync(DB_PATH)) {
+      try {
+        history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+      } catch (err) {
+        history = [];
+      }
+    }
   
     let filesAdded = 0;
     const addedNames = new Set<string>(); 
@@ -271,11 +289,25 @@ app.post('/api/download-batch', (req: any, res: any) => {
     const addItemsToArchive = (itemIds: string[], basePath: string = '') => {
       itemIds.forEach(id => {
         if (!id) return;
-        const record = history.find((r: any) => r.savedAs === id || r.fileName === id);
+        let record = history.find((r: any) => r.savedAs === id || r.fileName === id || r.id === id);
+
+        // Fallback: Check if file physically exists in UPLOADS_DIR
+        if (!record) {
+          const directCheck = path.join(UPLOADS_DIR, id);
+          if (fs.existsSync(directCheck)) {
+            try {
+              const stat = fs.statSync(directCheck);
+              if (!stat.isDirectory()) {
+                record = { fileName: id, savedAs: id, isFolder: false };
+              }
+            } catch (e) {}
+          }
+        }
+
         if (!record) return;
   
         if (record.isFolder) {
-          const children = history.filter((r: any) => r.parentId === record.savedAs).map((r: any) => r.savedAs);
+          const children = history.filter((r: any) => r.parentId === (record.savedAs || record.id)).map((r: any) => r.savedAs || r.fileName);
           addItemsToArchive(children, `${basePath}${record.fileName}/`);
         } else {
           const absolutePath = path.join(UPLOADS_DIR, record.savedAs || record.fileName);
@@ -299,12 +331,50 @@ app.post('/api/download-batch', (req: any, res: any) => {
   
     try {
       addItemsToArchive(files);
-      if (filesAdded === 0) zip.addFile('system_notice.txt', Buffer.from('No physical files were found.', 'utf8'));
+      if (filesAdded === 0) {
+        zip.addFile('system_notice.txt', Buffer.from('No physical files were found on disk.', 'utf8'));
+      }
       const zipBuffer = zip.toBuffer();
+      const exportName = `MVK-Vault-Export_${Date.now()}.zip`;
       res.set('Content-Type', 'application/zip');
+      res.set('Content-Disposition', `attachment; filename="${exportName}"`);
       res.set('Content-Length', zipBuffer.length.toString());
       res.send(zipBuffer);
-    } catch (e: any) { res.status(500).json({ error: "Fatal zip error" }); }
+    } catch (e: any) { 
+      console.error("Batch download error:", e);
+      res.status(500).json({ error: "Fatal zip error: " + (e.message || "Unknown error") }); 
+    }
+});
+
+// --- REVEAL FILE IN NATIVE OS EXPLORER ---
+app.post('/api/reveal-file', (req: any, res: any) => {
+  const { fileName } = req.body;
+  if (!fileName) return res.status(400).json({ error: "Filename required" });
+
+  try {
+    let history: any[] = [];
+    if (fs.existsSync(DB_PATH)) history = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+    const record = history.find((r: any) => r.savedAs === fileName || r.fileName === fileName);
+    const targetFile = record?.savedAs || fileName;
+    const targetPath = path.join(UPLOADS_DIR, targetFile);
+
+    if (fs.existsSync(targetPath)) {
+      const { exec } = require('child_process');
+      if (process.platform === 'win32') {
+        exec(`explorer.exe /select,"${targetPath.replace(/\//g, '\\')}"`);
+        return res.json({ success: true, localOpened: true, path: targetPath });
+      } else if (process.platform === 'darwin') {
+        exec(`open -R "${targetPath}"`);
+        return res.json({ success: true, localOpened: true, path: targetPath });
+      } else {
+        exec(`xdg-open "${path.dirname(targetPath)}"`);
+        return res.json({ success: true, localOpened: true, path: targetPath });
+      }
+    }
+    res.json({ success: true, localOpened: false, message: "File located on server", path: targetPath });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const getStorageUsedGB = () => {
